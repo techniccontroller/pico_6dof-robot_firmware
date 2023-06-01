@@ -1,6 +1,6 @@
 add_library(
     as5600_lib
-    src/as5600.c
+    src/as5600.cpp
     include/as5600.h
 )
 

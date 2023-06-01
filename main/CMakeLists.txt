@@ -1,5 +1,5 @@
 # Add executable. Default name is the project name, version 0.1
-add_executable(pico_stepper-control pico_stepper-control.c )
+add_executable(pico_stepper-control pico_stepper-control.cpp )
 
 pico_set_program_name(pico_stepper-control "pico_stepper-control")
 pico_set_program_version(pico_stepper-control "0.1")

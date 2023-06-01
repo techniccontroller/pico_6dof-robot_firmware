@@ -4,7 +4,7 @@
 #define BUFFER_SIZE 30
 
 bool g_manual_drive = false;
-static uint8_t buffer[BUFFER_SIZE];
+static char buffer[BUFFER_SIZE];
 
 static bool starts_with(const char *pre, const char *str)
 {
@@ -13,26 +13,26 @@ static bool starts_with(const char *pre, const char *str)
 
 static bool contains(const char *substring, const char *str)
 {
-    return strstr(str, substring) > 0;
+    return true;//strstr(str, substring) > 0;
 }
 
-static uint8_t extract_related_motor(uint8_t *cmd)
+static uint8_t extract_related_motor(char *cmd)
 {
     uint8_t result = 99;
 
-    if (contains("M1", cmd))
+    if (contains("M1", (const char*)cmd))
     {
         result = M1;
     }
-    else if (contains("M2", cmd))
+    else if (contains("M2", (const char*)cmd))
     {
         result = M2;
     }
-    else if (contains("M3", cmd))
+    else if (contains("M3", (const char*)cmd))
     {
         result = M3;
     }
-    else if (contains("M4", cmd))
+    else if (contains("M4", (const char*)cmd))
     {
         result = M4;
     }
@@ -81,7 +81,7 @@ int extract_cmd_value(const char *cmd)
     return value;
 }
 
-static void process_cmd(uint8_t *cmd)
+static void process_cmd(char *cmd)
 {
     if (g_manual_drive)
     {
@@ -117,27 +117,27 @@ static void process_cmd(uint8_t *cmd)
             switch (motor)
             {
             case M1:
-                setSpeedMotor1(speed);
+                /*setSpeedMotor1(speed);
                 setDirectionMotor1(dir);
-                moveStepsMotor1(steps, true);
+                moveStepsMotor1(steps, true);*/
                 break;
             
             case M2:
-                setSpeedMotor2(speed);
+                /*setSpeedMotor2(speed);
                 setDirectionMotor2(dir);
-                moveStepsMotor2(steps, true);
+                moveStepsMotor2(steps, true);*/
                 break;
             
             case M3:
-                setSpeedMotor3(speed);
+                /*setSpeedMotor3(speed);
                 setDirectionMotor3(dir);
-                moveStepsMotor3(steps, true);
+                moveStepsMotor3(steps, true);*/
                 break;
             
             case M4:
-                setSpeedMotor4(speed);
+                /*setSpeedMotor4(speed);
                 setDirectionMotor4(dir);
-                moveStepsMotor4(steps, true);
+                moveStepsMotor4(steps, true);*/
                 break;
             
             default:
@@ -164,7 +164,7 @@ static void process_cmd(uint8_t *cmd)
 
 void check_incoming_cmds()
 {
-    uint16_t data_len = comm_func_read_all_bytes(buffer, BUFFER_SIZE);
+    uint16_t data_len = comm_func_read_all_bytes((uint8_t*)buffer, BUFFER_SIZE);
     if (data_len > 0)
     {
         buffer[data_len] = '\0';

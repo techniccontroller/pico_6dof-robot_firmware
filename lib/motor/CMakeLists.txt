@@ -1,7 +1,7 @@
 add_library(
     motor_lib
-    src/AccelStepper.c
-    src/MultiStepper.c
+    src/AccelStepper.cpp
+    src/MultiStepper.cpp
     include/AccelStepper.h
     include/MultiStepper.h
 )

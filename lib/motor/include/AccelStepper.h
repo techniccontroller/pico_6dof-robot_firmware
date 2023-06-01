@@ -271,23 +271,14 @@
 #define AccelStepper_h
 
 #include <stdlib.h>
-#if ARDUINO >= 100
-#include <Arduino.h>
-#else
-#include <WProgram.h>
-#include <wiring.h>
-#endif
+#include <stdint.h>
 
 // These defs cause trouble on some versions of Arduino
 #undef round
 
-// Use the system yield() whenever possoible, since some platforms require it for housekeeping, especially
-// ESP8266
-#if (defined(ARDUINO) && ARDUINO >= 155) || defined(ESP8266)
- #define YIELD yield();
-#else
- #define YIELD
-#endif
+#define YIELD
+#define HIGH 1
+#define LOW 0
 
 /////////////////////////////////////////////////////////////////////
 /// \class AccelStepper AccelStepper.h <AccelStepper.h>
@@ -414,13 +405,13 @@ public:
     /// preferably in your main loop. Note that each call to run() will make at most one step, and then only when a step is due,
     /// based on the current speed and the time since the last step.
     /// \return true if the motor is still running to the target position.
-    boolean run();
+    bool run();
 
     /// Poll the motor and step it if a step is due, implementing a constant
     /// speed as set by the most recent call to setSpeed(). You must call this as
     /// frequently as possible, but at least once per step interval,
     /// \return true if the motor was stepped.
-    boolean runSpeed();
+    bool runSpeed();
 
     /// Sets the maximum permitted speed. The run() function will accelerate
     /// up to the speed set by this function.
@@ -455,6 +446,8 @@ public:
     /// crystal. Jitter depends on how frequently you call the runSpeed() function.
     /// The speed will be limited by the current value of setMaxSpeed()
     void    setSpeed(float speed);
+
+    float constrain(float x, float a, float b);
 
     /// The most recently set speed.
     /// \return the most recent speed in steps per second
@@ -495,7 +488,7 @@ public:
     /// speed unless the target position has been reached.
     /// Does not implement accelerations.
     /// \return true if it stepped
-    boolean runSpeedToPosition();
+    bool runSpeedToPosition();
 
     /// Moves the motor (with acceleration/deceleration)
     /// to the new target position and blocks until it is at
@@ -650,7 +643,7 @@ protected:
 
     /// Current direction motor is spinning in
     /// Protected because some peoples subclasses need it to be so
-    boolean _direction; // 1 == CW
+    bool _direction; // 1 == CW
     
     /// The current interval between steps in microseconds.
     /// 0 means the motor is currently stopped with _speed == 0

@@ -13,7 +13,8 @@
 #include <string.h>
 #include "defines_constants.h"
 #include "comm_functions.h"
-#include "motor.h"
+#include "AccelStepper.h"
+#include "MultiStepper.h"
 
 /**
  * @brief Set this flag to 1 to receive additional debug output via the communication interface

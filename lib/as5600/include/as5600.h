@@ -19,7 +19,7 @@
 
 /** Initializes sensor (i2c) bus
  */
-void as560x_init();
+void as560x_init(i2c_inst_t * i2c_port);
 
 /** Returns raw angle from the sensor
  *

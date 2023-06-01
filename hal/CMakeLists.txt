@@ -1,7 +1,7 @@
 
 add_library(
     comm_hal
-    src/comm_functions.c
+    src/comm_functions.cpp
     include/comm_functions.h
 )
 
@@ -10,7 +10,7 @@ target_include_directories(comm_hal PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src" "${
 
 add_library(
     gpio_hal
-    src/gpio_functions.c
+    src/gpio_functions.cpp
     include/gpio_functions.h
 )
 
@@ -19,7 +19,7 @@ target_include_directories(gpio_hal PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src" "${
 
 add_library(
     pwm_hal
-    src/pwm_functions.c
+    src/pwm_functions.cpp
     include/pwm_functions.h
 )
 

@@ -1,6 +1,6 @@
 add_library(
     communication_lib
-    src/communication.c
+    src/communication.cpp
     include/communication.h
 )
 
