@@ -1,0 +1,4 @@
+add_subdirectory(as5600)
+add_subdirectory(communication)
+add_subdirectory(defines_constants)
+add_subdirectory(motor)
