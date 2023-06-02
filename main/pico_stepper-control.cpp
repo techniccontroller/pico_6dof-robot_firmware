@@ -5,8 +5,15 @@
 #include "hardware/clocks.h"
 #include <AccelStepper.h>
 #include <MultiStepper.h>
+#include <StepperConfiguration.h>
 #include "communication.h"
 #include "as5600.h"
+
+
+#define PICO_W 1
+#ifdef PICO_W
+#include "pico/cyw43_arch.h"
+#endif
 
 // I2C defines
 // This example will use I2C0 on GPIO8 (SDA) and GPIO9 (SCL) running at 400KHz.
@@ -29,59 +36,38 @@
 #define MS1_PIN 18
 #define MS2_PIN 17
 #define MS3_PIN 16
+#define ENABLE_PIN 15
 
-void pio0_interrupt_handler() {
-    pio_interrupt_clear(pio0, 0) ;
-    puts("rotation1 done");
-    //moveStepsMotor1(0xFFFFFFFF) ;
-}
+#ifdef PICO_DEFAULT_LED_PIN
+#define LED_PIN PICO_DEFAULT_LED_PIN
+#else
+#define LED_PIN 25
+#endif
 
-void pio0_interrupt_handler1() {
-    pio_interrupt_clear(pio0, 1) ;
-    puts("rotation2 done");
-    //moveStepsMotor2(0xFFFFFFFF) ;
-}
-
-void pio1_interrupt_handler() {
-    pio_interrupt_clear(pio1, 0) ;
-    puts("rotation3 done");
-    //moveStepsMotor3(0xFFFFFFFF) ;
-}
-
-void pio1_interrupt_handler1() {
-    pio_interrupt_clear(pio1, 1) ;
-    puts("rotation4 done");
-    //moveStepsMotor4(0xFFFFFFFF) ;
-}
-
-void setMicrostepping(unsigned int res){
-    switch (res) {
-        case 1:
-            gpio_put(MS1_PIN, 0); gpio_put(MS2_PIN, 0); gpio_put(MS3_PIN, 0);
-            break;
-        case 2:
-            gpio_put(MS1_PIN, 1); gpio_put(MS2_PIN, 0); gpio_put(MS3_PIN, 0);
-            break;
-        case 4:
-            gpio_put(MS1_PIN, 0); gpio_put(MS2_PIN, 1); gpio_put(MS3_PIN, 0);
-            break;
-        case 8:
-            gpio_put(MS1_PIN, 1); gpio_put(MS2_PIN, 1); gpio_put(MS3_PIN, 0);
-            break;
-        case 16:
-            gpio_put(MS1_PIN, 1); gpio_put(MS2_PIN, 1); gpio_put(MS3_PIN, 1);
-            break;
-
-        default:
-            // no valid microstep resolution
-            break;
+void setLEDState(bool state)
+{
+    if(PICO_W){
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, state);
+    }
+    else{
+        gpio_put(LED_PIN, state);
     }
 }
-
 
 int main()
 {
     stdio_init_all();
+
+    if(PICO_W){
+        if (cyw43_arch_init()) {
+            printf("Wi-Fi init failed");
+            return -1;
+        }
+    }
+    else {
+        gpio_init(LED_PIN);
+        gpio_set_dir(LED_PIN, GPIO_OUT);
+    }
 
     as560x_init(I2C_PORT);
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
@@ -93,20 +79,10 @@ int main()
 
     setup_default_uart();
 
-    gpio_init(MS1_PIN);
-    gpio_init(MS2_PIN);
-    gpio_init(MS3_PIN);
-    gpio_set_dir(MS1_PIN, GPIO_OUT);
-    gpio_set_dir(MS2_PIN, GPIO_OUT);
-    gpio_set_dir(MS3_PIN, GPIO_OUT);
-    setMicrostepping(4);
-
-
     AccelStepper stepper1(AccelStepper::DRIVER, MOTOR1_STEP_PIN, MOTOR1_DIR_PIN);
     AccelStepper stepper2(AccelStepper::DRIVER, MOTOR2_STEP_PIN, MOTOR2_DIR_PIN);
-
-    // Up to 10 steppers can be handled as a group by MultiStepper
     MultiStepper steppers;
+    StepperConfiguration stepper_config(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, 4);
 
     // Configure each stepper
     stepper1.setMaxSpeed(2000.0);
@@ -119,12 +95,7 @@ int main()
 
     // Then give them to MultiStepper to manage
     steppers.addStepper(stepper1);
-    steppers.addStepper(stepper2);
-
-    
-    const uint LED_PIN = PICO_DEFAULT_LED_PIN;
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
+    steppers.addStepper(stepper2);    
 
     puts("Start programm... (wait for 10 seconds)");
     //sleep_ms(10000);
@@ -158,7 +129,7 @@ int main()
 
         //check_incoming_cmds();
 
-        /*// measure and print angle every 200ms
+        // measure and print angle every 200ms
         uint32_t current_time = time_us_64() / 1000;
         if((current_time - last_print_time > 500))
         {
@@ -172,7 +143,7 @@ int main()
             
             last_print_time = current_time;
             
-        }*/
+        }
 
         //sleep_ms(20);
     }

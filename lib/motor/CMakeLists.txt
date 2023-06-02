@@ -2,8 +2,10 @@ add_library(
     motor_lib
     src/AccelStepper.cpp
     src/MultiStepper.cpp
+    src/StepperConfiguration.cpp
     include/AccelStepper.h
     include/MultiStepper.h
+    include/StepperConfiguration.h
 )
 
 target_link_libraries(motor_lib defines_constants_lib gpio_hal pwm_hal)

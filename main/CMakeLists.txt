@@ -8,7 +8,10 @@ pico_enable_stdio_uart(pico_stepper-control 0)
 pico_enable_stdio_usb(pico_stepper-control 1)
 
 # Add the standard library to the build
-target_link_libraries(pico_stepper-control pico_stdlib)
+target_link_libraries(pico_stepper-control 
+        pico_stdlib 
+        pico_cyw43_arch_none     # we need Wifi to access the GPIO, but we don't need anything else
+        )
 
 # Add any user requested libraries
 target_link_libraries(pico_stepper-control
@@ -17,7 +20,7 @@ target_link_libraries(pico_stepper-control
         hardware_irq
         comm_hal
         gpio_hal
-
+        
         motor_lib
         communication_lib
         as5600_lib
