@@ -1,22 +1,27 @@
 #include "communication.h"
 #include <stdlib.h>
 
-#define BUFFER_SIZE 30
 
-bool g_manual_drive = false;
-static char buffer[BUFFER_SIZE];
 
-static bool starts_with(const char *pre, const char *str)
+Communication::Communication(AccelStepper *stepper1, AccelStepper *stepper2, AccelStepper *stepper3, AccelStepper *stepper4)
+{
+    _stepper1 = stepper1;
+    _stepper2 = stepper2;
+    _stepper3 = stepper3;
+    _stepper4 = stepper4;
+}
+
+bool Communication::starts_with(const char *pre, const char *str)
 {
     return strncmp(pre, str, strlen(pre)) == 0;
 }
 
-static bool contains(const char *substring, const char *str)
+bool Communication::contains(const char *substring, const char *str)
 {
-    return true;//strstr(str, substring) > 0;
+    return strstr(str, substring) != NULL;
 }
 
-static uint8_t extract_related_motor(char *cmd)
+uint8_t Communication::extract_related_motor(char *cmd)
 {
     uint8_t result = 99;
 
@@ -40,13 +45,8 @@ static uint8_t extract_related_motor(char *cmd)
     return result;
 }
 
-/**
- * @brief extract control value from command if available
- *
- * @param cmd given command, with a value in brackets 'MY_COMMAND(value)'
- * @return int
- */
-int extract_cmd_value(const char *cmd)
+
+int Communication::extract_cmd_value(const char *cmd)
 {
     int value = 0;
     char cmd_copy[50];
@@ -81,9 +81,9 @@ int extract_cmd_value(const char *cmd)
     return value;
 }
 
-static void process_cmd(char *cmd)
+void Communication::process_cmd(char *cmd)
 {
-    if (g_manual_drive)
+    if (_manual_drive)
     {
         uint8_t motor = extract_related_motor(cmd);
 
@@ -95,9 +95,8 @@ static void process_cmd(char *cmd)
         }
         else
         {
-            unsigned int speed = 0;
-            bool dir = false;
-            unsigned int steps = 0xFFFFFFFF;
+            long speed = 0;
+            long steps = 0xFFFFFF;
             if (contains("END", cmd))
             {
                 steps = 0;
@@ -105,39 +104,66 @@ static void process_cmd(char *cmd)
             }
             if (contains("BACKWARD_START", cmd))
             {
-                dir = true;
                 speed = abs(extract_cmd_value(cmd));
             }
             if (contains("FORWARD_START", cmd))
             {
-                dir = false;
                 speed = abs(extract_cmd_value(cmd));
+                steps *= -1;
             }
 
             switch (motor)
             {
             case M1:
-                /*setSpeedMotor1(speed);
-                setDirectionMotor1(dir);
-                moveStepsMotor1(steps, true);*/
+                if(_stepper1 != NULL){
+                    if(steps == 0){
+                        _stepper1->stop();
+                    }
+                    else{
+                        _stepper1->setMaxSpeed(speed);
+                        _stepper1->setAcceleration(500.0);
+                        _stepper1->move(steps);
+                    }
+                }
                 break;
             
             case M2:
-                /*setSpeedMotor2(speed);
-                setDirectionMotor2(dir);
-                moveStepsMotor2(steps, true);*/
+                if(_stepper2 != NULL){
+                    if(steps == 0){
+                        _stepper2->stop();
+                    }
+                    else{
+                        _stepper2->setMaxSpeed(speed);
+                        _stepper2->setAcceleration(500.0);
+                        _stepper2->move(steps);
+                    }
+                }
                 break;
             
             case M3:
-                /*setSpeedMotor3(speed);
-                setDirectionMotor3(dir);
-                moveStepsMotor3(steps, true);*/
+                if(_stepper3 != NULL){
+                    if(steps == 0){
+                        _stepper3->stop();
+                    }
+                    else{
+                        _stepper3->setMaxSpeed(speed);
+                        _stepper3->setAcceleration(500.0);
+                        _stepper3->move(steps);
+                    }
+                }
                 break;
             
             case M4:
-                /*setSpeedMotor4(speed);
-                setDirectionMotor4(dir);
-                moveStepsMotor4(steps, true);*/
+                if(_stepper4 != NULL){
+                    if(steps == 0){
+                        _stepper4->stop();
+                    }
+                    else{
+                        _stepper4->setMaxSpeed(speed);
+                        _stepper4->setAcceleration(500.0);
+                        _stepper4->move(steps);
+                    }
+                }
                 break;
             
             default:
@@ -145,7 +171,7 @@ static void process_cmd(char *cmd)
             }
             
             char str_buffer[20];
-            sprintf(str_buffer, "motor: %d, spd: %d, dir: %d, step: %d", motor, speed, dir, steps);
+            sprintf(str_buffer, "motor: %d, spd: %d, step: %d", motor, speed, steps);
             comm_func_write(str_buffer);
         }
     }
@@ -153,16 +179,16 @@ static void process_cmd(char *cmd)
     if (starts_with("ENABLE_MANUAL", cmd))
     {
         comm_func_write("enable manual drive\n");
-        g_manual_drive = true;
+        _manual_drive = true;
     }
     else if (starts_with("DISABLE_MANUAL", cmd))
     {
         comm_func_write("disable manual drive\n");
-        g_manual_drive = false;
+        _manual_drive = false;
     }
 }
 
-void check_incoming_cmds()
+void Communication::check_incoming_cmds()
 {
     uint16_t data_len = comm_func_read_all_bytes((uint8_t*)buffer, BUFFER_SIZE);
     if (data_len > 0)

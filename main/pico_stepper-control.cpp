@@ -83,15 +83,16 @@ int main()
     AccelStepper stepper2(AccelStepper::DRIVER, MOTOR2_STEP_PIN, MOTOR2_DIR_PIN);
     MultiStepper steppers;
     StepperConfiguration stepper_config(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, 4);
+    Communication comm(&stepper1, &stepper2, NULL, NULL);
 
     // Configure each stepper
     stepper1.setMaxSpeed(2000.0);
     stepper1.setAcceleration(500.0);
-    stepper1.moveTo(1000);
+    //stepper1.moveTo(1000);
     
     stepper2.setMaxSpeed(2000.0);
     stepper2.setAcceleration(500.0);
-    stepper2.moveTo(1000);
+    //stepper2.moveTo(1000);
 
     // Then give them to MultiStepper to manage
     steppers.addStepper(stepper1);
@@ -119,15 +120,15 @@ int main()
         sleep_ms(1000);*/
 
         // Change direction at the limits
-        if (stepper1.distanceToGo() == 0)
+        /*if (stepper1.distanceToGo() == 0)
             stepper1.moveTo(-stepper1.currentPosition());
         if (stepper2.distanceToGo() == 0)
-            stepper2.moveTo(-stepper2.currentPosition());
+            stepper2.moveTo(-stepper2.currentPosition());*/
         stepper1.run();
         stepper2.run();
         
 
-        //check_incoming_cmds();
+        comm.check_incoming_cmds();
 
         // measure and print angle every 200ms
         uint32_t current_time = time_us_64() / 1000;
