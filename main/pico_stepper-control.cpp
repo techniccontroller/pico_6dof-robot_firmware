@@ -7,6 +7,7 @@
 #include <MultiStepper.h>
 #include <StepperConfiguration.h>
 #include "communication.h"
+#include "controller.h"
 #include "as5600.h"
 
 
@@ -83,7 +84,9 @@ int main()
     AccelStepper stepper2(AccelStepper::DRIVER, MOTOR2_STEP_PIN, MOTOR2_DIR_PIN);
     MultiStepper steppers;
     StepperConfiguration stepper_config(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, 4);
-    Communication comm(&stepper1, &stepper2, NULL, NULL, &encoder1, &encoder2);
+    
+    Controller controller(&stepper1, &stepper2, &encoder1, &encoder2);
+    Communication comm(&controller, &stepper1, &stepper2, NULL, NULL, &encoder1, &encoder2);
 
     // Configure each stepper
     stepper1.setMaxSpeed(2000.0);
@@ -102,6 +105,7 @@ int main()
     //sleep_ms(10000);
 
     uint32_t last_print_time = time_us_64() / 1000;
+    uint32_t last_step_time = time_us_64() / 1000;
 
     while (true) {
         /*long positions[2]; // Array of desired stepper positions
@@ -124,8 +128,6 @@ int main()
             stepper1.moveTo(-stepper1.currentPosition());
         if (stepper2.distanceToGo() == 0)
             stepper2.moveTo(-stepper2.currentPosition());*/
-        stepper1.run();
-        stepper2.run();
         
 
         comm.check_incoming_cmds();
@@ -151,6 +153,14 @@ int main()
             last_print_time = current_time;
             
         }
+
+        if((current_time - last_step_time > 50))
+        {
+            controller.step();
+            last_step_time = current_time;
+        }
+
+        controller.run();
 
         //sleep_ms(20);
     }

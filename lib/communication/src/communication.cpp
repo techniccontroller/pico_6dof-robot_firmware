@@ -3,7 +3,7 @@
 
 
 
-Communication::Communication(AccelStepper *stepper1, AccelStepper *stepper2, AccelStepper *stepper3, AccelStepper *stepper4, AS5600 *encoder1, AS5600 *encoder2)
+Communication::Communication(Controller *controller, AccelStepper *stepper1, AccelStepper *stepper2, AccelStepper *stepper3, AccelStepper *stepper4, AS5600 *encoder1, AS5600 *encoder2)
 {
     _stepper1 = stepper1;
     _stepper2 = stepper2;
@@ -11,6 +11,7 @@ Communication::Communication(AccelStepper *stepper1, AccelStepper *stepper2, Acc
     _stepper4 = stepper4;
     _encoder1 = encoder1;
     _encoder2 = encoder2;
+    _controller = controller;
 }
 
 bool Communication::starts_with(const char *pre, const char *str)
@@ -90,21 +91,44 @@ void Communication::process_cmd(char *cmd)
         uint8_t motor = extract_related_motor(cmd);
 
         
-        if (contains("INIT", cmd))
+        if (contains("_INIT", cmd))
         {
-            // TODO: initialize all motors
-            comm_func_write("MOTOR is initialized\n");
-            _encoder1->setZero();
-            _encoder2->setZero();
+            switch(motor){
+                case M1:
+                    _controller->initializeM1();
+                    comm_func_write("Init MOTOR M1\n");
+                    break;
+                case M2:
+                    _controller->initializeM2();
+                    comm_func_write("Init MOTOR M2\n");
+                    break;
+                default:    
+                    break;
+
+            }
+        }
+        else if (contains("_ZERO", cmd))
+        {
+            switch(motor){
+                case M1:
+                    _encoder1->setZero();
+                    comm_func_write("MOTOR M1 is initialized\n");
+                    break;
+                case M2:
+                    _encoder2->setZero();
+                    comm_func_write("MOTOR M2 is initialized\n");
+                    break;
+                default:    
+                    break;
+
+            }
         }
         else
         {
             long speed = 0;
-            long steps = 0xFFFFFF;
             if (contains("END", cmd))
             {
-                steps = 0;
-                speed = 200;
+                speed = 0;
             }
             if (contains("BACKWARD_START", cmd))
             {
@@ -113,65 +137,25 @@ void Communication::process_cmd(char *cmd)
             if (contains("FORWARD_START", cmd))
             {
                 speed = abs(extract_cmd_value(cmd));
-                steps *= -1;
+                speed *= -1;
             }
 
             switch (motor)
             {
             case M1:
-                if(_stepper1 != NULL){
-                    if(steps == 0){
-                        _stepper1->stop();
-                        _stepper2->stop();
-                    }
-                    else{
-                        _stepper1->setMaxSpeed(speed);
-                        _stepper1->setAcceleration(500.0);
-                        _stepper1->move(steps);
-                        _stepper2->setMaxSpeed(speed);
-                        _stepper2->setAcceleration(500.0);
-                        _stepper2->move(steps);
-                    }
-                }
+                _controller->setM1Velocity(speed);
                 break;
             
             case M2:
-                if(_stepper2 != NULL){
-                    if(steps == 0){
-                        _stepper2->stop();
-                    }
-                    else{
-                        _stepper2->setMaxSpeed(speed);
-                        _stepper2->setAcceleration(500.0);
-                        _stepper2->move(steps);
-                    }
-                }
+                _controller->setM2Velocity(speed);
                 break;
             
             case M3:
-                if(_stepper3 != NULL){
-                    if(steps == 0){
-                        _stepper3->stop();
-                    }
-                    else{
-                        _stepper3->setMaxSpeed(speed);
-                        _stepper3->setAcceleration(500.0);
-                        _stepper3->move(steps);
-                    }
-                }
+                // none
                 break;
             
             case M4:
-                if(_stepper4 != NULL){
-                    if(steps == 0){
-                        _stepper4->stop();
-                    }
-                    else{
-                        _stepper4->setMaxSpeed(speed);
-                        _stepper4->setAcceleration(500.0);
-                        _stepper4->move(steps);
-                    }
-                }
+                // none
                 break;
             
             default:
@@ -179,7 +163,7 @@ void Communication::process_cmd(char *cmd)
             }
             
             char str_buffer[20];
-            sprintf(str_buffer, "motor: %d, spd: %d, step: %d", motor, speed, steps);
+            sprintf(str_buffer, "motor: %d, spd: %d", motor, speed);
             comm_func_write(str_buffer);
         }
     }

@@ -52,6 +52,14 @@ def send_init_cmd(motor):
     """
     ser.write((motor + "_INIT\n").encode())
 
+def send_zero_cmd(motor):
+    """Send zero command to Pico for given motor
+
+    Args:
+        motor (string): motor to be controlled
+    """
+    ser.write((motor + "_ZERO\n").encode())
+
 if __name__ == "__main__":
 
     if len(sys.argv) == 2:
@@ -74,6 +82,8 @@ if __name__ == "__main__":
         all_btns_manual.append(sg.Button("F", size=(4, 2)))
     for mo in motor_names:
         all_btns_manual.append(sg.Button("I", size=(4, 2)))
+    for mo in motor_names:
+        all_btns_manual.append(sg.Button("Z", size=(4, 2)))
 
 
     all_txts_manual = []
@@ -86,7 +96,7 @@ if __name__ == "__main__":
     # create layouts
     button_layout = []
     for i in range(len(motor_names)):
-        button_layout.append(sg.Column([[sg.Text(motor_names[i])], [all_btns_manual[i]], [all_btns_manual[i+len(motor_names)]], [all_btns_manual[i+2*len(motor_names)]], [all_txts_manual[i]]], element_justification='center'))
+        button_layout.append(sg.Column([[sg.Text(motor_names[i])], [all_btns_manual[i]], [all_btns_manual[i+len(motor_names)]], [all_btns_manual[i+2*len(motor_names)]], [all_btns_manual[i+3*len(motor_names)]], [all_txts_manual[i]]], element_justification='center'))
 
     
     layout = [  [sg.Text("Initialize all motors:")], 
@@ -133,6 +143,8 @@ if __name__ == "__main__":
                 if mo in event:
                     if event[0] == "I":
                         send_init_cmd(mo)
+                    elif event[0] == "Z":
+                        send_zero_cmd(mo)
                     else:
                         send_start_cmd(mo, dir, all_txts_manual[i].get())
                 i = i + 1
