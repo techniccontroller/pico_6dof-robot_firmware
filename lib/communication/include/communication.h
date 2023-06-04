@@ -15,6 +15,7 @@
 #include "comm_functions.h"
 #include "AccelStepper.h"
 #include "MultiStepper.h"
+#include "AS5600.h"
 
 /**
  * @brief Set this flag to 1 to receive additional debug output via the communication interface
@@ -25,7 +26,7 @@
 class Communication
 {
 public:
-    Communication(AccelStepper *stepper1=NULL, AccelStepper *stepper2=NULL, AccelStepper *stepper3=NULL, AccelStepper *stepper4=NULL);
+    Communication(AccelStepper *stepper1=NULL, AccelStepper *stepper2=NULL, AccelStepper *stepper3=NULL, AccelStepper *stepper4=NULL, AS5600 *encoder1=NULL, AS5600 *encoder2=NULL);
 
     /**
      * @brief Check if new commands have been received and process them if so
@@ -62,4 +63,6 @@ private:
     AccelStepper *_stepper2;          /**< Stepper 2. */
     AccelStepper *_stepper3;          /**< Stepper 3. */
     AccelStepper *_stepper4;          /**< Stepper 4. */
+    AS5600 *_encoder1;               /**< Encoder 1. */
+    AS5600 *_encoder2;               /**< Encoder 2. */
 };

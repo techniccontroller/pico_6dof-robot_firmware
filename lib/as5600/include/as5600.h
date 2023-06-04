@@ -32,6 +32,7 @@ class AS5600 {
 public:
     AS5600(i2c_inst_t * i2c_port, uint8_t scl_pin, uint8_t sda_pin, uint8_t addr);
     int readAngle();
+    int getCorrectedAngle();
     uint8_t getStatus();
     void sensorData();
     void setZero();

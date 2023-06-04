@@ -3,12 +3,14 @@
 
 
 
-Communication::Communication(AccelStepper *stepper1, AccelStepper *stepper2, AccelStepper *stepper3, AccelStepper *stepper4)
+Communication::Communication(AccelStepper *stepper1, AccelStepper *stepper2, AccelStepper *stepper3, AccelStepper *stepper4, AS5600 *encoder1, AS5600 *encoder2)
 {
     _stepper1 = stepper1;
     _stepper2 = stepper2;
     _stepper3 = stepper3;
     _stepper4 = stepper4;
+    _encoder1 = encoder1;
+    _encoder2 = encoder2;
 }
 
 bool Communication::starts_with(const char *pre, const char *str)
@@ -92,6 +94,8 @@ void Communication::process_cmd(char *cmd)
         {
             // TODO: initialize all motors
             comm_func_write("MOTOR is initialized\n");
+            _encoder1->setZero();
+            _encoder2->setZero();
         }
         else
         {

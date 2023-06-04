@@ -30,6 +30,15 @@ int AS5600::readAngle() {
     return readReg(AS560x_RAW_ANGLE_REG, true, 0xFFF);
 }
 
+int AS5600::getCorrectedAngle() {
+    int angle = readAngle();
+    int corrected = angle - g_zero;
+    if (corrected < 0) {
+        corrected += AS5601_ANGLE_MAX;
+    }
+    return corrected;
+}
+
 uint8_t AS5600::getStatus() {
     return (uint8_t) readReg(AS560x_STATUS_REG, false, 0x38);
 }
