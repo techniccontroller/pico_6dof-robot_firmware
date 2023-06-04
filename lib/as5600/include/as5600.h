@@ -8,33 +8,46 @@
  * @copyright Copyright (c) 2023
  * 
  */
-#ifndef RPI_PICO_SERVO_AS560X_H
-#define RPI_PICO_SERVO_AS560X_H
+#ifndef RPI_PICO_AS5600_H
+#define RPI_PICO_AS5600_H
+
+#include "hardware/i2c.h"
+#include "hardware/gpio.h"
+#include <stdint.h>
+
+
 #define I2C_TIMEOUT_US (100000)
 
 #define AS5601_ANGLE_MAX (0xFFFL)
 #define AS560x_STATUS_MAGNET_DETECTED (0x20)
 #define AS560x_STATUS_MAGNET_HIGH (0x08)
 #define AS560x_STATUS_MAGNET_LOW (0x10)
+#define AS560x_STATUS_REG (0x0B)
+#define AS560x_RAW_ANGLE_REG (0x0C)
 
-/** Initializes sensor (i2c) bus
- */
-void as560x_init(i2c_inst_t * i2c_port);
 
-/** Returns raw angle from the sensor
- *
- * @return Raw angle value [0...AS5601_ANGLE_MAX]
- */
-int as560xReadAngle();
+class AS5600 {
 
-/** Reads sensor status
- *
- * @return combo of AS560x_STATUS_MAGNET_DETECTED, AS560x_STATUS_MAGNET_HIGH, AS560x_STATUS_MAGNET_LOW
- */
-uint8_t as560xGetStatus();
 
-/** Debug purposes only
- */
-__unused void sensorData();
+public:
+    AS5600(i2c_inst_t * i2c_port, uint8_t scl_pin, uint8_t sda_pin, uint8_t addr);
+    int readAngle();
+    uint8_t getStatus();
+    void sensorData();
+    void setZero();
+    void setZero(int zero);
+    int getZero();
 
-#endif //RPI_PICO_SERVO_AS560X_H
+private:
+
+    uint16_t readReg(int addr, bool wide, uint16_t mask);
+    void printReg16(const char *formatStr, int addr, uint16_t mask);
+    void printReg8(const char *formatStr, int addr, uint8_t mask);
+
+    uint8_t g_addr;
+    i2c_inst_t * g_i2c_port;
+    int g_zero = 0;
+};
+
+
+#endif //RPI_PICO_AS5600_H

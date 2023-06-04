@@ -18,19 +18,22 @@
 // I2C defines
 // This example will use I2C0 on GPIO8 (SDA) and GPIO9 (SCL) running at 400KHz.
 // Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
-#define I2C_PORT i2c1
-#define I2C_SDA 26
-#define I2C_SCL 27
+#define I2C_PORT0 i2c0
+#define I2C_PORT1 i2c1
+#define I2C_SDA0 26
+#define I2C_SCL0 27
+#define I2C_SDA1 12
+#define I2C_SCL1 13
 
 
 // Pin defines
 #define MOTOR1_STEP_PIN 20
 #define MOTOR2_STEP_PIN 22
-#define MOTOR3_STEP_PIN 13
+#define MOTOR3_STEP_PIN 15
 #define MOTOR4_STEP_PIN 11
 #define MOTOR1_DIR_PIN 19
 #define MOTOR2_DIR_PIN 21
-#define MOTOR3_DIR_PIN 12
+#define MOTOR3_DIR_PIN 14
 #define MOTOR4_DIR_PIN 10
 
 #define MS1_PIN 18
@@ -69,13 +72,10 @@ int main()
         gpio_set_dir(LED_PIN, GPIO_OUT);
     }
 
-    as560x_init(I2C_PORT);
-    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_SDA);
-    gpio_pull_up(I2C_SCL);
+    AS5600 encoder1(I2C_PORT0, I2C_SCL0, I2C_SDA0, 0x36);
+    AS5600 encoder2(I2C_PORT1, I2C_SCL1, I2C_SDA1, 0x36);
     // Make the I2C pins available to picotool
-    //bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C));
+    //bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA1_PIN, PICO_DEFAULT_I2C_SCL1_PIN, GPIO_FUNC_I2C));
 
     setup_default_uart();
 
@@ -134,13 +134,19 @@ int main()
         uint32_t current_time = time_us_64() / 1000;
         if((current_time - last_print_time > 500))
         {
-            uint8_t status = (uint8_t) as560xGetStatus();
-            if (!(status & AS560x_STATUS_MAGNET_DETECTED)) {
-                printf("ERROR\n\r");
-            }
+            uint8_t status1 = (uint8_t) encoder1.getStatus();
+            if (!(status1 & AS560x_STATUS_MAGNET_DETECTED)) {
+                printf("ERROR with angle 1\n\r");
+            } 
 
-            int angle = as560xReadAngle() * 360 / 0xFFF;
-            printf("Current angle: %d\n\r",angle);
+            uint8_t status2 = (uint8_t) encoder2.getStatus();
+            if (!(status2 & AS560x_STATUS_MAGNET_DETECTED)) {
+                printf("ERROR with angle 2\n\r");
+            } 
+            
+            int angle1 = encoder1.readAngle() * 3600 / 0xFFF;
+            int angle2 = encoder2.readAngle() * 3600 / 0xFFF;
+            printf("Current angle: [%6.f][%6.f]\n\r", angle1/10.0, angle2/10.0);
             
             last_print_time = current_time;
             

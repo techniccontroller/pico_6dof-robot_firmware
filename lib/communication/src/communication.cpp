@@ -118,11 +118,15 @@ void Communication::process_cmd(char *cmd)
                 if(_stepper1 != NULL){
                     if(steps == 0){
                         _stepper1->stop();
+                        _stepper2->stop();
                     }
                     else{
                         _stepper1->setMaxSpeed(speed);
                         _stepper1->setAcceleration(500.0);
                         _stepper1->move(steps);
+                        _stepper2->setMaxSpeed(speed);
+                        _stepper2->setAcceleration(500.0);
+                        _stepper2->move(steps);
                     }
                 }
                 break;
