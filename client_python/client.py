@@ -34,6 +34,17 @@ def send_start_cmd(motor, dir, value):
     active_motor = motor
     ser.write((motor + "_" + dir + "_START(" + str(int(value)) + ")\n").encode()) 
 
+def send_set_pos_cmd(motor, value):
+    """Send a set position command to Pico for given motor
+
+    Args:
+        motor (string): motor to be controlled (M1, M2, ...)
+        value (number): position of motor
+    """
+    global active_motor
+    active_motor = motor
+    ser.write((motor + "_SET(" + str(int(value)) + ")\n").encode()) 
+
 def send_end_cmd(dir):
     """Send a end command to Pico for the currently active motor
 
@@ -84,11 +95,15 @@ if __name__ == "__main__":
         all_btns_manual.append(sg.Button("I", size=(4, 2)))
     for mo in motor_names:
         all_btns_manual.append(sg.Button("Z", size=(4, 2)))
+    for mo in motor_names:
+        all_btns_manual.append(sg.Button("S", size=(4, 2)))
 
 
     all_txts_manual = []
     for mo in motor_names:
         all_txts_manual.append(sg.Input(default_text="255", size=4))
+    for mo in motor_names:
+        all_txts_manual.append(sg.Input(default_text="0", size=4))
 
     btn_init = sg.Button("INIT", size=7)
 
@@ -96,7 +111,15 @@ if __name__ == "__main__":
     # create layouts
     button_layout = []
     for i in range(len(motor_names)):
-        button_layout.append(sg.Column([[sg.Text(motor_names[i])], [all_btns_manual[i]], [all_btns_manual[i+len(motor_names)]], [all_btns_manual[i+2*len(motor_names)]], [all_btns_manual[i+3*len(motor_names)]], [all_txts_manual[i]]], element_justification='center'))
+        button_layout.append(sg.Column([[sg.Text(motor_names[i])], 
+                                        [all_btns_manual[i]], 
+                                        [all_btns_manual[i+len(motor_names)]], 
+                                        [all_btns_manual[i+2*len(motor_names)]], 
+                                        [all_btns_manual[i+3*len(motor_names)]], 
+                                        [all_txts_manual[i]],
+                                        [all_btns_manual[i+4*len(motor_names)]],
+                                        [all_txts_manual[i+len(motor_names)]]
+                                        ], element_justification='center'))
 
     
     layout = [  [sg.Text("Initialize all motors:")], 
@@ -145,6 +168,8 @@ if __name__ == "__main__":
                         send_init_cmd(mo)
                     elif event[0] == "Z":
                         send_zero_cmd(mo)
+                    elif event[0] == "S":
+                        send_set_pos_cmd(mo, all_txts_manual[i+len(motor_names)].get())
                     else:
                         send_start_cmd(mo, dir, all_txts_manual[i].get())
                 i = i + 1

@@ -123,6 +123,21 @@ void Communication::process_cmd(char *cmd)
 
             }
         }
+        else if (contains("_SET", cmd))
+        {
+            switch(motor){
+                case M1:
+                    _controller->setM1Position(extract_cmd_value(cmd));
+                    comm_func_write("MOTOR M1 is set\n");
+                    break;
+                case M2:
+                    _controller->setM2Position(extract_cmd_value(cmd));
+                    comm_func_write("MOTOR M2 is set\n");
+                    break;
+                default:    
+                    break;
+            }
+        }
         else
         {
             long speed = 0;
