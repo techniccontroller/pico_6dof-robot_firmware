@@ -68,7 +68,7 @@ void Controller::step()
         }
         if(abs(angle2) < 0.1) {
             g_m2_state = MotorControlState::POSITION_CONTROL;
-            g_stepper1->setCurrentPosition(0);
+            g_stepper2->setCurrentPosition(0);
             g_m1_setpoint_pos = 0;
             g_stepper2->setMaxSpeed(100);
             g_stepper2->setAcceleration(500.0);

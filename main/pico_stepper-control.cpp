@@ -83,7 +83,7 @@ int main()
     AccelStepper stepper1(AccelStepper::DRIVER, MOTOR1_STEP_PIN, MOTOR1_DIR_PIN);
     AccelStepper stepper2(AccelStepper::DRIVER, MOTOR2_STEP_PIN, MOTOR2_DIR_PIN);
     MultiStepper steppers;
-    StepperConfiguration stepper_config(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, 4);
+    StepperConfiguration stepper_config(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, 4, 60.0/16.0 * 60.0/16.0);
     
     Controller controller(&stepper1, &stepper2, &encoder1, &encoder2);
     Communication comm(&controller, &stepper1, &stepper2, NULL, NULL, &encoder1, &encoder2);
@@ -148,7 +148,12 @@ int main()
             
             float angle1 = (encoder1.getCorrectedAngle() * 360.0) / 0xFFF;
             float angle2 = (encoder2.getCorrectedAngle() * 360.0) / 0xFFF;
-            printf("Current angle: [%6.1f] [%6.1f]\n\r", angle1, angle2);
+            int pos1 = stepper1.currentPosition();
+            int pos2 = stepper2.currentPosition();
+            float angleMotor1 = stepper_config.stepsToAngleDeg(stepper1.currentPosition());
+            float angleMotor2 = stepper_config.stepsToAngleDeg(stepper2.currentPosition());
+            printf("Current angle(sensor - motor): [%6.1f] [%6.1f] - [%6.1f] [%6.1f]\n\r", angle1, angle2, angleMotor1, angleMotor2);
+            printf("Current position: [%6d] [%6d]\n\r", pos1, pos2);
             
             last_print_time = current_time;
             

@@ -14,9 +14,14 @@
 class StepperConfiguration{
 public:
 
-    StepperConfiguration(uint8_t pinMS1, uint8_t pinMS2, uint8_t pinMS3, uint8_t pinEnable, uint8_t microsteppingResolution = 1);
+    StepperConfiguration(uint8_t pinMS1, uint8_t pinMS2, uint8_t pinMS3, uint8_t pinEnable, uint8_t microsteppingResolution = 1, float gearRatio = 1.0);
 
     void setMicrostepping(uint8_t res);
+    void setGearRatio(float ratio);
+    int angleDegToSteps(float angle);
+    int angleRadToSteps(float angle);
+    float stepsToAngleDeg(int steps);
+    float stepsToAngleRad(int steps);
 
 
 private:
@@ -28,5 +33,6 @@ private:
     uint8_t _pinMS3;
     uint8_t _pinEnable;
     uint8_t _microsteppingResolution;
+    float _gearRatio;
 
 };

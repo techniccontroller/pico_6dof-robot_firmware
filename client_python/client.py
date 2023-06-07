@@ -43,7 +43,7 @@ def send_set_pos_cmd(motor, value):
     """
     global active_motor
     active_motor = motor
-    ser.write((motor + "_SET(" + str(int(value)) + ")\n").encode()) 
+    ser.write((motor + "_SET(" + str(float(value)) + ")\n").encode()) 
 
 def send_end_cmd(dir):
     """Send a end command to Pico for the currently active motor

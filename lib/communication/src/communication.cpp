@@ -51,7 +51,7 @@ uint8_t Communication::extract_related_motor(char *cmd)
 
 int Communication::extract_cmd_value(const char *cmd)
 {
-    int value = 0;
+    float value = 0;
     char cmd_copy[50];
     memset(cmd_copy, '\0', sizeof(cmd_copy));
     strcpy(cmd_copy, cmd);
@@ -71,12 +71,12 @@ int Communication::extract_cmd_value(const char *cmd)
                 start_char++;
             }
 
-            value = atoi(value_str);
+            value = atof(value_str);
 
             if (DEBUG_IS_ENABLED)
             {
-                char str_buffer[20];
-                sprintf(str_buffer, "received value: %s -> %d", value_str, value);
+                char str_buffer[40];
+                sprintf(str_buffer, "received value: %s -> %f\n", value_str, value);
                 comm_func_write(str_buffer);
             }
         }
