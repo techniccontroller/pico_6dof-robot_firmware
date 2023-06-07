@@ -121,12 +121,16 @@ if __name__ == "__main__":
                                         [all_txts_manual[i+len(motor_names)]]
                                         ], element_justification='center'))
 
+    txt_coord = sg.Input(default_text="0,0", size=20)
+    btn_send_coord = sg.Button("SEND", size=7)
     
     layout = [  [sg.Text("Initialize all motors:")], 
                 [btn_init],
                 [sg.Text("Checkbox to enable the manual drive mode:")], 
                 [chkbx_manual],
-                [button_layout]
+                [button_layout],
+                [txt_coord],
+                [btn_send_coord]
                 ]
 
     # create the window
@@ -159,6 +163,9 @@ if __name__ == "__main__":
         
         if event == "INIT":
             ser.write(("INIT\n").encode())
+        
+        elif event == "SEND":
+            ser.write(("COORD(" + txt_coord.get() + ")\n").encode())
         
         elif event.endswith("press"):
             i = 0

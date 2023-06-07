@@ -2,8 +2,14 @@
 #include <stdlib.h>
 
 
-
-Communication::Communication(Controller *controller, AccelStepper *stepper1, AccelStepper *stepper2, AccelStepper *stepper3, AccelStepper *stepper4, AS5600 *encoder1, AS5600 *encoder2)
+Communication::Communication(Controller *controller, 
+                                AccelStepper *stepper1, 
+                                AccelStepper *stepper2, 
+                                AccelStepper *stepper3, 
+                                AccelStepper *stepper4, 
+                                AS5600 *encoder1, 
+                                AS5600 *encoder2,
+                                StepperConfiguration *stepper_config)
 {
     _stepper1 = stepper1;
     _stepper2 = stepper2;
@@ -12,6 +18,7 @@ Communication::Communication(Controller *controller, AccelStepper *stepper1, Acc
     _encoder1 = encoder1;
     _encoder2 = encoder2;
     _controller = controller;
+    _stepper_config = stepper_config;
 }
 
 bool Communication::starts_with(const char *pre, const char *str)
@@ -137,6 +144,15 @@ void Communication::process_cmd(char *cmd)
                     break;
 
             }
+        }
+        else if(contains("COORD", cmd))
+        {
+            std::vector<float> values = extract_cmd_values(cmd);
+            std::vector<float> jointAngles = _stepper_config->inverseKinematics(values[0], values[1], 0);
+            printf("jointAngles: %f, %f\n", jointAngles[0], jointAngles[1]);
+            _controller->setM1Position(_stepper_config->angleRadToSteps(jointAngles[0]));
+            _controller->setM2Position(_stepper_config->angleRadToSteps(-1*jointAngles[1]));
+            comm_func_write("COORD is set\n");
         }
         else if (contains("_SET", cmd))
         {

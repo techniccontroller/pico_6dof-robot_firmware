@@ -5,8 +5,8 @@
 #include "hardware/clocks.h"
 #include <AccelStepper.h>
 #include <MultiStepper.h>
-#include <StepperConfiguration.h>
 #include "communication.h"
+#include <StepperConfiguration.h>
 #include "controller.h"
 #include "as5600.h"
 
@@ -86,7 +86,7 @@ int main()
     StepperConfiguration stepper_config(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, 4, 60.0/16.0 * 60.0/16.0);
     
     Controller controller(&stepper1, &stepper2, &encoder1, &encoder2);
-    Communication comm(&controller, &stepper1, &stepper2, NULL, NULL, &encoder1, &encoder2);
+    Communication comm(&controller, &stepper1, &stepper2, NULL, NULL, &encoder1, &encoder2, &stepper_config);
 
     // Configure each stepper
     stepper1.setMaxSpeed(2000.0);

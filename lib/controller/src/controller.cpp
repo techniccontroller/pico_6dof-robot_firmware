@@ -149,12 +149,14 @@ void Controller::setM1Position(float position)
 {
     g_m1_state = MotorControlState::POSITION_CONTROL;
     g_m1_setpoint_pos = position;
+    printf("M1 - setpoint: %f\n\r", g_m1_setpoint_pos);
 }
 
 void Controller::setM2Position(float position)
 {
     g_m2_state = MotorControlState::POSITION_CONTROL;
     g_m2_setpoint_pos = position;
+    printf("M2 - setpoint: %f\n\r", g_m2_setpoint_pos);
 }
 
 void Controller::setM1Velocity(float velocity)

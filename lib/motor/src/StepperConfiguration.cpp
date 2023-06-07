@@ -90,7 +90,7 @@ float StepperConfiguration::stepsToAngleRad(int steps){
     return angle;
 }
 
-std::vector<float> inverseKinematics(float x, float y, float z){
+std::vector<float> StepperConfiguration::inverseKinematics(float x, float y, float z){
     std::vector<float> result;
 
     float l1 = 0.21;

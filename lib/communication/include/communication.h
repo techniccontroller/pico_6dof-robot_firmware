@@ -17,6 +17,7 @@
 #include "MultiStepper.h"
 #include "AS5600.h"
 #include "controller.h"
+#include "StepperConfiguration.h"
 #include <vector>
 
 /**
@@ -28,7 +29,14 @@
 class Communication
 {
 public:
-    Communication(Controller *controller, AccelStepper *stepper1=NULL, AccelStepper *stepper2=NULL, AccelStepper *stepper3=NULL, AccelStepper *stepper4=NULL, AS5600 *encoder1=NULL, AS5600 *encoder2=NULL);
+    Communication(Controller *controller, 
+                    AccelStepper *stepper1=NULL, 
+                    AccelStepper *stepper2=NULL, 
+                    AccelStepper *stepper3=NULL, 
+                    AccelStepper *stepper4=NULL, 
+                    AS5600 *encoder1=NULL, 
+                    AS5600 *encoder2=NULL, 
+                    StepperConfiguration *stepper_config=NULL);
 
     /**
      * @brief Check if new commands have been received and process them if so
@@ -59,13 +67,14 @@ private:
     std::vector<float> extract_cmd_values(const char *cmd);
     void process_cmd(char *cmd);
 
-    char buffer[BUFFER_SIZE];        /**< Buffer for incoming commands. */
-    bool _manual_drive = false;      /**< Flag wheter the manual driving mode is active. */
-    AccelStepper *_stepper1;          /**< Stepper 1. */
-    AccelStepper *_stepper2;          /**< Stepper 2. */
-    AccelStepper *_stepper3;          /**< Stepper 3. */
-    AccelStepper *_stepper4;          /**< Stepper 4. */
-    AS5600 *_encoder1;               /**< Encoder 1. */
-    AS5600 *_encoder2;               /**< Encoder 2. */
-    Controller *_controller;         /**< Controller. */
+    char buffer[BUFFER_SIZE];               /**< Buffer for incoming commands. */
+    bool _manual_drive = false;             /**< Flag wheter the manual driving mode is active. */
+    AccelStepper *_stepper1;                /**< Stepper 1. */
+    AccelStepper *_stepper2;                /**< Stepper 2. */
+    AccelStepper *_stepper3;                /**< Stepper 3. */
+    AccelStepper *_stepper4;                /**< Stepper 4. */
+    AS5600 *_encoder1;                      /**< Encoder 1. */
+    AS5600 *_encoder2;                      /**< Encoder 2. */
+    Controller *_controller;                /**< Controller. */
+    StepperConfiguration *_stepper_config;  /**< Stepper configuration. */
 };
