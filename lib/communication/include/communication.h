@@ -17,6 +17,7 @@
 #include "MultiStepper.h"
 #include "AS5600.h"
 #include "controller.h"
+#include <vector>
 
 /**
  * @brief Set this flag to 1 to receive additional debug output via the communication interface
@@ -55,7 +56,7 @@ private:
      * @param cmd given command, with a value in brackets 'MY_COMMAND(value)'
      * @return int
      */
-    int extract_cmd_value(const char *cmd);
+    std::vector<float> extract_cmd_values(const char *cmd);
     void process_cmd(char *cmd);
 
     char buffer[BUFFER_SIZE];        /**< Buffer for incoming commands. */

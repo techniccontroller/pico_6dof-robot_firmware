@@ -153,7 +153,7 @@ int main()
             float angleMotor1 = stepper_config.stepsToAngleDeg(stepper1.currentPosition());
             float angleMotor2 = stepper_config.stepsToAngleDeg(stepper2.currentPosition());
             printf("Current angle(sensor - motor): [%6.1f] [%6.1f] - [%6.1f] [%6.1f]\n\r", angle1, angle2, angleMotor1, angleMotor2);
-            printf("Current position: [%6d] [%6d]\n\r", pos1, pos2);
+            //printf("Current position: [%6d] [%6d]\n\r", pos1, pos2);
             
             last_print_time = current_time;
             

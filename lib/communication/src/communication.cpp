@@ -49,9 +49,9 @@ uint8_t Communication::extract_related_motor(char *cmd)
 }
 
 
-int Communication::extract_cmd_value(const char *cmd)
+std::vector<float> Communication::extract_cmd_values(const char *cmd)
 {
-    float value = 0;
+    std::vector<float> values;
     char cmd_copy[50];
     memset(cmd_copy, '\0', sizeof(cmd_copy));
     strcpy(cmd_copy, cmd);
@@ -71,17 +71,32 @@ int Communication::extract_cmd_value(const char *cmd)
                 start_char++;
             }
 
-            value = atof(value_str);
-
-            if (DEBUG_IS_ENABLED)
+            // split value_str by ',' and save to array
+            char *token = strtok(value_str, ",");
+            char *values_str[2];
+            int i = 0;
+            while (token != NULL)
             {
-                char str_buffer[40];
-                sprintf(str_buffer, "received value: %s -> %f\n", value_str, value);
-                comm_func_write(str_buffer);
+                values_str[i] = token;
+                token = strtok(NULL, ",");
+                i++;
+            }
+
+            // convert values_str to float and save to vector
+            for (int k = 0; k < i; k++)
+            {
+                float value = atof(values_str[k]);
+                values.push_back(value);
+                if (DEBUG_IS_ENABLED)
+                {
+                    char str_buffer[40];
+                    sprintf(str_buffer, "received value: %s -> %f\n", value_str, value);
+                    comm_func_write(str_buffer);
+                }
             }
         }
     }
-    return value;
+    return values;
 }
 
 void Communication::process_cmd(char *cmd)
@@ -127,11 +142,11 @@ void Communication::process_cmd(char *cmd)
         {
             switch(motor){
                 case M1:
-                    _controller->setM1Position(extract_cmd_value(cmd));
+                    _controller->setM1Position(extract_cmd_values(cmd)[0]);
                     comm_func_write("MOTOR M1 is set\n");
                     break;
                 case M2:
-                    _controller->setM2Position(extract_cmd_value(cmd));
+                    _controller->setM2Position(extract_cmd_values(cmd)[0]);
                     comm_func_write("MOTOR M2 is set\n");
                     break;
                 default:    
@@ -147,11 +162,11 @@ void Communication::process_cmd(char *cmd)
             }
             if (contains("BACKWARD_START", cmd))
             {
-                speed = abs(extract_cmd_value(cmd));
+                speed = abs(extract_cmd_values(cmd)[0]);
             }
             if (contains("FORWARD_START", cmd))
             {
-                speed = abs(extract_cmd_value(cmd));
+                speed = abs(extract_cmd_values(cmd)[0]);
                 speed *= -1;
             }
 

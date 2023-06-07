@@ -10,6 +10,7 @@
  */
 
 #include <stdint.h>
+#include <vector>
 
 class StepperConfiguration{
 public:
@@ -22,6 +23,8 @@ public:
     int angleRadToSteps(float angle);
     float stepsToAngleDeg(int steps);
     float stepsToAngleRad(int steps);
+
+    std::vector<float> inverseKinematics(float x, float y, float z);
 
 
 private:
