@@ -160,7 +160,7 @@ void Communication::process_cmd(char *cmd)
             uint8_t i;
             for (i = 0; i < 2; i++){
                 long thisDistance = absolute[i] - _steppers[i]->currentPosition();
-                float thisTime = abs(thisDistance) / 100;
+                float thisTime = abs(thisDistance) / 1000.0;
 
                 if (thisTime > longestTime){
                     longestTime = thisTime;

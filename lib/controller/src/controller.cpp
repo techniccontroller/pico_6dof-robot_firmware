@@ -51,6 +51,7 @@ void Controller::step()
         g_stepper1->moveTo(g_m1_setpoint_pos);
         break;
     case VELOCITY_CONTROL:
+        g_stepper1->setMaxSpeed(g_m1_setpoint_vel);
         g_stepper1->setSpeed(g_m1_setpoint_vel);
         break;
     default:
@@ -89,6 +90,7 @@ void Controller::step()
         g_stepper2->moveTo(g_m2_setpoint_pos);
         break;
     case VELOCITY_CONTROL:
+        g_stepper2->setMaxSpeed(g_m2_setpoint_vel);
         g_stepper2->setSpeed(g_m2_setpoint_vel);
         break;
     default:
@@ -149,7 +151,7 @@ void Controller::setM1Position(float position)
 {
     g_m1_state = MotorControlState::POSITION_CONTROL;
     g_m1_setpoint_pos = position;
-    g_m1_setpoint_vel = 100;
+    g_m1_setpoint_vel = 1000;
     printf("M1 - setpoint: %f\n\r", g_m1_setpoint_pos);
 }
 
@@ -157,7 +159,7 @@ void Controller::setM2Position(float position)
 {
     g_m2_state = MotorControlState::POSITION_CONTROL;
     g_m2_setpoint_pos = position;
-    g_m2_setpoint_vel = 100;
+    g_m2_setpoint_vel = 1000;
     printf("M2 - setpoint: %f\n\r", g_m2_setpoint_pos);
 }
 
