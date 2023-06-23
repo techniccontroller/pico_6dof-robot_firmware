@@ -2,6 +2,7 @@ import serial
 import PySimpleGUI as sg
 import threading
 import sys
+import time
 
 COM_PORT_PICO_DEFAULT = "COM4"
 
@@ -16,11 +17,40 @@ def thread_function(name):
     Args:
         name (string): name of thread (currently not used)
     """
-    global stop_threads
+    global stop_threads, ser
     while not stop_threads:
         while ser.in_waiting:
             data_in = ser.readline().decode("ascii")
             print("uC: " + data_in)
+
+def thread_square(name):
+
+    global ser
+
+    for i in range(40):
+        x = 0.2
+        y = 0.1 + i*0.0025
+        ser.write(("COORD(" + str("%.3f" % x) + "," + str("%.3f" % y) + ")\n").encode())
+        time.sleep(0.05)
+    
+    for i in range(40):
+        x = 0.2 + i*0.0025
+        y = 0.2 
+        ser.write(("COORD(" + str("%.3f" % x) + "," + str("%.3f" % y) + ")\n").encode())
+        time.sleep(0.05)
+    
+    for i in range(40):
+        x = 0.3
+        y = 0.2 - i*0.0025
+        ser.write(("COORD(" + str("%.3f" % x) + "," + str("%.3f" % y) + ")\n").encode())
+        time.sleep(0.05)
+
+    for i in range(40):
+        x = 0.3 - i*0.0025
+        y = 0.1 
+        ser.write(("COORD(" + str("%.3f" % x) + "," + str("%.3f" % y) + ")\n").encode())
+        time.sleep(0.05)
+        
 
 def send_start_cmd(motor, dir, value):
     """Send a start command to Pico for given motor and direction
@@ -162,7 +192,8 @@ if __name__ == "__main__":
             dir = "FORWARD"
         
         if event == "INIT":
-            ser.write(("INIT\n").encode())
+            x = threading.Thread(target=thread_square, args=(1,), daemon=True)
+            x.start()
         
         elif event == "SEND":
             ser.write(("COORD(" + txt_coord.get() + ")\n").encode())

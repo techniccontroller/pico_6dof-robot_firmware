@@ -42,6 +42,7 @@ void Controller::step()
         } else if (speed1 < -100) {
             speed1 = -100;
         }
+        g_stepper1->setMaxSpeed(speed1);
         g_stepper1->setSpeed(speed1);
         printf("M1 - angle: %f, speed: %f\n\r", angle1, speed1);
         break;
@@ -81,6 +82,7 @@ void Controller::step()
         } else if (speed2 < -100) {
             speed2 = -100;
         }
+        g_stepper2->setMaxSpeed(speed2);
         g_stepper2->setSpeed(speed2);
         printf("M2 - angle: %f, speed: %f\n\r", angle2, speed2);
         break;

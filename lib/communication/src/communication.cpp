@@ -145,41 +145,6 @@ void Communication::process_cmd(char *cmd)
 
             }
         }
-        else if(contains("COORD", cmd))
-        {
-            std::vector<float> values = extract_cmd_values(cmd);
-            std::vector<float> jointAngles = _stepper_config->inverseKinematics(values[0], values[1], 0);
-            printf("jointAngles: %f, %f\n", jointAngles[0], jointAngles[1]);
-
-            long absolute[2];
-            absolute[0] = _stepper_config->angleRadToSteps(jointAngles[0]);
-            absolute[1] = _stepper_config->angleRadToSteps(-1*jointAngles[1]);
-
-            float longestTime = 0.0;
-
-            uint8_t i;
-            for (i = 0; i < 2; i++){
-                long thisDistance = absolute[i] - _steppers[i]->currentPosition();
-                float thisTime = abs(thisDistance) / 1000.0;
-
-                if (thisTime > longestTime){
-                    longestTime = thisTime;
-                }
-            }
-
-            if (longestTime > 0.0) {
-                // Now work out a new max speed for each stepper so they will all 
-                // arrived at the same time of longestTime
-                long distance1 = absolute[0] - _steppers[0]->currentPosition();
-                float speed1 = distance1 / longestTime;
-                _controller->setM1PositionVelocity(absolute[0], speed1);
-
-                long distance2 = absolute[1] - _steppers[1]->currentPosition();
-                float speed2 = distance2 / longestTime;
-                _controller->setM2PositionVelocity(absolute[1], speed2);
-            }
-            comm_func_write("COORD is set\n");
-        }
         else if (contains("_SET", cmd))
         {
             switch(motor){
@@ -249,6 +214,41 @@ void Communication::process_cmd(char *cmd)
     {
         comm_func_write("disable manual drive\n");
         _manual_drive = false;
+    }
+    else if (starts_with("COORD", cmd))
+    {
+        std::vector<float> values = extract_cmd_values(cmd);
+        std::vector<float> jointAngles = _stepper_config->inverseKinematics(values[0], values[1], 0);
+        printf("jointAngles: %f, %f\n", jointAngles[0], jointAngles[1]);
+
+        long absolute[2];
+        absolute[0] = _stepper_config->angleRadToSteps(jointAngles[0]);
+        absolute[1] = _stepper_config->angleRadToSteps(-1*jointAngles[1]);
+
+        float longestTime = 0.0;
+
+        uint8_t i;
+        for (i = 0; i < 2; i++){
+            long thisDistance = absolute[i] - _steppers[i]->currentPosition();
+            float thisTime = abs(thisDistance) / 1000.0;
+
+            if (thisTime > longestTime){
+                longestTime = thisTime;
+            }
+        }
+
+        if (longestTime > 0.0) {
+            // Now work out a new max speed for each stepper so they will all 
+            // arrived at the same time of longestTime
+            long distance1 = absolute[0] - _steppers[0]->currentPosition();
+            float speed1 = distance1 / longestTime;
+            _controller->setM1PositionVelocity(absolute[0], speed1);
+
+            long distance2 = absolute[1] - _steppers[1]->currentPosition();
+            float speed2 = distance2 / longestTime;
+            _controller->setM2PositionVelocity(absolute[1], speed2);
+        }
+        comm_func_write("COORD is set\n");
     }
 }
 
