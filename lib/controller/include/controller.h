@@ -51,6 +51,8 @@ class Controller {
     void setM2Position(float position);
     void setM1Velocity(float velocity);
     void setM2Velocity(float velocity);
+    void setM1PositionVelocity(float position, float velocity);
+    void setM2PositionVelocity(float position, float velocity);
 
     private:
 

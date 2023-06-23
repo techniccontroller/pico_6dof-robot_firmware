@@ -69,10 +69,7 @@ private:
 
     char buffer[BUFFER_SIZE];               /**< Buffer for incoming commands. */
     bool _manual_drive = false;             /**< Flag wheter the manual driving mode is active. */
-    AccelStepper *_stepper1;                /**< Stepper 1. */
-    AccelStepper *_stepper2;                /**< Stepper 2. */
-    AccelStepper *_stepper3;                /**< Stepper 3. */
-    AccelStepper *_stepper4;                /**< Stepper 4. */
+    AccelStepper *_steppers[4];             /**< Pointer array for Steppers*/
     AS5600 *_encoder1;                      /**< Encoder 1. */
     AS5600 *_encoder2;                      /**< Encoder 2. */
     Controller *_controller;                /**< Controller. */

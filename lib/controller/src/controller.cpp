@@ -46,7 +46,7 @@ void Controller::step()
         printf("M1 - angle: %f, speed: %f\n\r", angle1, speed1);
         break;
     case POSITION_CONTROL:
-        g_stepper1->setMaxSpeed(100);
+        g_stepper1->setMaxSpeed(g_m1_setpoint_vel);
         g_stepper1->setAcceleration(500.0);
         g_stepper1->moveTo(g_m1_setpoint_pos);
         break;
@@ -84,7 +84,7 @@ void Controller::step()
         printf("M2 - angle: %f, speed: %f\n\r", angle2, speed2);
         break;
     case POSITION_CONTROL:
-        g_stepper2->setMaxSpeed(100);
+        g_stepper2->setMaxSpeed(g_m2_setpoint_vel);
         g_stepper2->setAcceleration(500.0);
         g_stepper2->moveTo(g_m2_setpoint_pos);
         break;
@@ -149,6 +149,7 @@ void Controller::setM1Position(float position)
 {
     g_m1_state = MotorControlState::POSITION_CONTROL;
     g_m1_setpoint_pos = position;
+    g_m1_setpoint_vel = 100;
     printf("M1 - setpoint: %f\n\r", g_m1_setpoint_pos);
 }
 
@@ -156,6 +157,7 @@ void Controller::setM2Position(float position)
 {
     g_m2_state = MotorControlState::POSITION_CONTROL;
     g_m2_setpoint_pos = position;
+    g_m2_setpoint_vel = 100;
     printf("M2 - setpoint: %f\n\r", g_m2_setpoint_pos);
 }
 
@@ -169,4 +171,20 @@ void Controller::setM2Velocity(float velocity)
 {
     g_m2_state = MotorControlState::VELOCITY_CONTROL;
     g_m2_setpoint_vel = velocity;
+}
+
+void Controller::setM1PositionVelocity(float position, float velocity)
+{
+    g_m1_state = MotorControlState::POSITION_CONTROL;
+    g_m1_setpoint_pos = position;
+    g_m1_setpoint_vel = velocity;
+    printf("M1 - setpoint pos: %f, vel: %f\n\r", g_m1_setpoint_pos, g_m1_setpoint_vel);
+}
+
+void Controller::setM2PositionVelocity(float position, float velocity)
+{
+    g_m2_state = MotorControlState::POSITION_CONTROL;
+    g_m2_setpoint_pos = position;
+    g_m2_setpoint_vel = velocity;
+    printf("M2 - setpoint pos: %f, vel: %f\n\r", g_m2_setpoint_pos, g_m2_setpoint_vel);
 }
