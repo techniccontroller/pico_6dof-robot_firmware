@@ -275,7 +275,7 @@ void Controller::setM1Position(float position)
 {
     g_m1_state = MotorControlState::POSITION_CONTROL;
     g_m1_setpoint_pos = position;
-    g_m1_setpoint_vel = 1000;
+    g_m1_setpoint_vel = 3000;
     printf("M1 - setpoint: %f\n\r", g_m1_setpoint_pos);
 }
 
@@ -283,7 +283,7 @@ void Controller::setM2Position(float position)
 {
     g_m2_state = MotorControlState::POSITION_CONTROL;
     g_m2_setpoint_pos = position;
-    g_m2_setpoint_vel = 1000;
+    g_m2_setpoint_vel = 3000;
     printf("M2 - setpoint: %f\n\r", g_m2_setpoint_pos);
 }
 
@@ -291,7 +291,7 @@ void Controller::setM3Position(float position)
 {
     g_m3_state = MotorControlState::POSITION_CONTROL;
     g_m3_setpoint_pos = position;
-    g_m3_setpoint_vel = 1000;
+    g_m3_setpoint_vel = 3000;
     printf("M3 - setpoint: %f\n\r", g_m3_setpoint_pos);
 }
 

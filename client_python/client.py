@@ -49,7 +49,7 @@ def thread_square(name):
             y_tmp = y + i*y_delta
             z_tmp = z + i*z_delta
             ser.write(("COORD(" + str("%.3f" % x_tmp) + "," + str("%.3f" % y_tmp) + "," + str("%.3f" % z_tmp) + ")\n").encode())
-            time.sleep(0.15)
+            time.sleep(0.05)
 
         x = x_tmp
         y = y_tmp

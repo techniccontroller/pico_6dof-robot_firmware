@@ -229,13 +229,13 @@ void Communication::process_cmd(char *cmd)
         absolute[2] = _stepper_config->angleRadToSteps(motorAngles[0]);
 
         long distance1 = absolute[0] - _controller->getM1()->currentPosition();
-        float time1 = abs(distance1) / 1000.0;
+        float time1 = abs(distance1) / 3000.0;
         
         long distance2 = absolute[1] - _controller->getM2()->currentPosition();
-        float time2 = abs(distance2) / 1000.0;
+        float time2 = abs(distance2) / 3000.0;
         
         long distance3 = absolute[2] - _controller->getM3()->currentPosition();
-        float time3 = abs(distance3) / 1000.0;
+        float time3 = abs(distance3) / 3000.0;
 
         float longestTime = time1;
         if (time2 > longestTime){
