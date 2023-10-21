@@ -106,6 +106,7 @@ std::vector<float> StepperConfiguration::inverseKinematics(float x, float y, flo
 
     result.push_back(q1);
     result.push_back(q2);
+    result.push_back(0);
     return result;
 }
 

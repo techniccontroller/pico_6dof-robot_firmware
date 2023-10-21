@@ -29,14 +29,7 @@
 class Communication
 {
 public:
-    Communication(Controller *controller, 
-                    AccelStepper *stepper1=NULL, 
-                    AccelStepper *stepper2=NULL, 
-                    AccelStepper *stepper3=NULL, 
-                    AccelStepper *stepper4=NULL, 
-                    AS5600 *encoder1=NULL, 
-                    AS5600 *encoder2=NULL, 
-                    StepperConfiguration *stepper_config=NULL);
+    Communication(Controller *controller, StepperConfiguration *stepper_config=NULL);
 
     /**
      * @brief Check if new commands have been received and process them if so
@@ -69,9 +62,6 @@ private:
 
     char buffer[BUFFER_SIZE];               /**< Buffer for incoming commands. */
     bool _manual_drive = false;             /**< Flag wheter the manual driving mode is active. */
-    AccelStepper *_steppers[4];             /**< Pointer array for Steppers*/
-    AS5600 *_encoder1;                      /**< Encoder 1. */
-    AS5600 *_encoder2;                      /**< Encoder 2. */
     Controller *_controller;                /**< Controller. */
     StepperConfiguration *_stepper_config;  /**< Stepper configuration. */
 };

@@ -2,21 +2,8 @@
 #include <stdlib.h>
 
 
-Communication::Communication(Controller *controller, 
-                                AccelStepper *stepper1, 
-                                AccelStepper *stepper2, 
-                                AccelStepper *stepper3, 
-                                AccelStepper *stepper4, 
-                                AS5600 *encoder1, 
-                                AS5600 *encoder2,
-                                StepperConfiguration *stepper_config)
+Communication::Communication(Controller *controller, StepperConfiguration *stepper_config)
 {
-    _steppers[0] = stepper1;
-    _steppers[1] = stepper2;
-    _steppers[2] = stepper3;
-    _steppers[3] = stepper4;
-    _encoder1 = encoder1;
-    _encoder2 = encoder2;
     _controller = controller;
     _stepper_config = stepper_config;
 }
@@ -124,6 +111,11 @@ void Communication::process_cmd(char *cmd)
                     _controller->initializeM2();
                     comm_func_write("Init MOTOR M2\n");
                     break;
+                case M3:
+                    _controller->initializeM3();
+                    comm_func_write("Init MOTOR M3\n");
+                    break;
+
                 default:    
                     break;
 
@@ -133,12 +125,22 @@ void Communication::process_cmd(char *cmd)
         {
             switch(motor){
                 case M1:
-                    _encoder1->setZero();
+                    if(_controller->getE1() != NULL){
+                        _controller->getE1()->setZero();
+                    }
                     comm_func_write("MOTOR M1 is initialized\n");
                     break;
                 case M2:
-                    _encoder2->setZero();
+                    if(_controller->getE2() != NULL){
+                        _controller->getE2()->setZero();
+                    }
                     comm_func_write("MOTOR M2 is initialized\n");
+                    break;
+                case M3:
+                    if(_controller->getE3() != NULL){
+                        _controller->getE3()->setZero();
+                    }
+                    comm_func_write("MOTOR M3 is initialized\n");
                     break;
                 default:    
                     break;
@@ -155,6 +157,10 @@ void Communication::process_cmd(char *cmd)
                 case M2:
                     _controller->setM2Position(extract_cmd_values(cmd)[0]);
                     comm_func_write("MOTOR M2 is set\n");
+                    break;
+                case M3:
+                    _controller->setM3Position(extract_cmd_values(cmd)[0]);
+                    comm_func_write("MOTOR M3 is set\n");
                     break;
                 default:    
                     break;
@@ -188,11 +194,7 @@ void Communication::process_cmd(char *cmd)
                 break;
             
             case M3:
-                // none
-                break;
-            
-            case M4:
-                // none
+                _controller->setM3Velocity(speed);
                 break;
             
             default:
@@ -219,34 +221,41 @@ void Communication::process_cmd(char *cmd)
     {
         std::vector<float> values = extract_cmd_values(cmd);
         std::vector<float> jointAngles = _stepper_config->inverseKinematics(values[0], values[1], 0);
-        printf("jointAngles: %f, %f\n", jointAngles[0], jointAngles[1]);
+        printf("jointAngles: %f, %f, %f\n", jointAngles[0], jointAngles[1], jointAngles[2]);
 
-        long absolute[2];
+        long absolute[3];
         absolute[0] = _stepper_config->angleRadToSteps(jointAngles[0]);
         absolute[1] = _stepper_config->angleRadToSteps(-1*jointAngles[1]);
+        absolute[2] = _stepper_config->angleRadToSteps(jointAngles[2]);
 
-        float longestTime = 0.0;
+        long distance1 = absolute[0] - _controller->getM1()->currentPosition();
+        float time1 = abs(distance1) / 1000.0;
+        
+        long distance2 = absolute[1] - _controller->getM2()->currentPosition();
+        float time2 = abs(distance2) / 1000.0;
+        
+        long distance3 = absolute[2] - _controller->getM3()->currentPosition();
+        float time3 = abs(distance3) / 1000.0;
 
-        uint8_t i;
-        for (i = 0; i < 2; i++){
-            long thisDistance = absolute[i] - _steppers[i]->currentPosition();
-            float thisTime = abs(thisDistance) / 1000.0;
-
-            if (thisTime > longestTime){
-                longestTime = thisTime;
-            }
+        float longestTime = time1;
+        if (time2 > longestTime){
+            longestTime = time2;
+        }
+        if (time3 > longestTime){
+            longestTime = time3;
         }
 
         if (longestTime > 0.0) {
             // Now work out a new max speed for each stepper so they will all 
             // arrived at the same time of longestTime
-            long distance1 = absolute[0] - _steppers[0]->currentPosition();
             float speed1 = distance1 / longestTime;
             _controller->setM1PositionVelocity(absolute[0], speed1);
 
-            long distance2 = absolute[1] - _steppers[1]->currentPosition();
             float speed2 = distance2 / longestTime;
             _controller->setM2PositionVelocity(absolute[1], speed2);
+
+            float speed3 = distance3 / longestTime;
+            _controller->setM3PositionVelocity(absolute[2], speed3);
         }
         comm_func_write("COORD is set\n");
     }

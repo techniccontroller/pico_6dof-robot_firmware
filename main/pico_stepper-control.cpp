@@ -21,8 +21,8 @@
 // Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
 #define I2C_PORT0 i2c0
 #define I2C_PORT1 i2c1
-#define I2C_SDA0 26
-#define I2C_SCL0 27
+#define I2C_SDA0 14
+#define I2C_SCL0 15
 #define I2C_SDA1 12
 #define I2C_SCL1 13
 
@@ -30,17 +30,19 @@
 // Pin defines
 #define MOTOR1_STEP_PIN 20
 #define MOTOR2_STEP_PIN 22
-#define MOTOR3_STEP_PIN 15
+#define MOTOR3_STEP_PIN 27
 #define MOTOR4_STEP_PIN 11
 #define MOTOR1_DIR_PIN 19
 #define MOTOR2_DIR_PIN 21
-#define MOTOR3_DIR_PIN 14
+#define MOTOR3_DIR_PIN 26
 #define MOTOR4_DIR_PIN 10
 
 #define MS1_PIN 18
 #define MS2_PIN 17
 #define MS3_PIN 16
-#define ENABLE_PIN 15
+#define ENABLE_PIN 28
+
+
 
 #ifdef PICO_DEFAULT_LED_PIN
 #define LED_PIN PICO_DEFAULT_LED_PIN
@@ -82,11 +84,15 @@ int main()
 
     AccelStepper stepper1(AccelStepper::DRIVER, MOTOR1_STEP_PIN, MOTOR1_DIR_PIN);
     AccelStepper stepper2(AccelStepper::DRIVER, MOTOR2_STEP_PIN, MOTOR2_DIR_PIN);
+    AccelStepper stepper3(AccelStepper::DRIVER, MOTOR3_STEP_PIN, MOTOR3_DIR_PIN);
     MultiStepper steppers;
     StepperConfiguration stepper_config(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, 4, 60.0/16.0 * 60.0/16.0);
     
-    Controller controller(&stepper1, &stepper2, &encoder1, &encoder2);
-    Communication comm(&controller, &stepper1, &stepper2, NULL, NULL, &encoder1, &encoder2, &stepper_config);
+    Controller controller;
+    controller.addM1(&stepper1, &encoder1);
+    controller.addM2(&stepper2, &encoder2);
+    controller.addM3(&stepper3, NULL);
+    Communication comm(&controller, &stepper_config);
 
     // Configure each stepper
     stepper1.setMaxSpeed(2000.0);
@@ -97,9 +103,14 @@ int main()
     stepper2.setAcceleration(500.0);
     //stepper2.moveTo(1000);
 
+    stepper3.setMaxSpeed(2000.0);
+    stepper3.setAcceleration(500.0);
+    //stepper3.moveTo(1000);
+
     // Then give them to MultiStepper to manage
     steppers.addStepper(stepper1);
-    steppers.addStepper(stepper2);    
+    steppers.addStepper(stepper2); 
+    steppers.addStepper(stepper3);   
 
     puts("Start programm... (wait for 10 seconds)");
     //sleep_ms(10000);
@@ -108,10 +119,11 @@ int main()
     uint32_t last_step_time = time_us_64() / 1000;
 
     while (true) {
-        /*long positions[2]; // Array of desired stepper positions
+        /*long positions[3]; // Array of desired stepper positions
   
         positions[0] = 1000;
         positions[1] = 50;
+        positions[2] = 100;
         steppers.moveTo(positions);
         steppers.runSpeedToPosition(); // Blocks until all are in position
         sleep_ms(1000);
@@ -119,15 +131,10 @@ int main()
         // Move to a different coordinate
         positions[0] = -100;
         positions[1] = 100;
+        positions[2] = 50;
         steppers.moveTo(positions);
         steppers.runSpeedToPosition(); // Blocks until all are in position
         sleep_ms(1000);*/
-
-        // Change direction at the limits
-        /*if (stepper1.distanceToGo() == 0)
-            stepper1.moveTo(-stepper1.currentPosition());
-        if (stepper2.distanceToGo() == 0)
-            stepper2.moveTo(-stepper2.currentPosition());*/
         
 
         comm.check_incoming_cmds();
@@ -148,12 +155,14 @@ int main()
             
             float angle1 = (encoder1.getCorrectedAngle() * 360.0) / 0xFFF;
             float angle2 = (encoder2.getCorrectedAngle() * 360.0) / 0xFFF;
+            float angle3 = 0.0;
             int pos1 = stepper1.currentPosition();
             int pos2 = stepper2.currentPosition();
+            int pos3 = stepper3.currentPosition();
             float angleMotor1 = stepper_config.stepsToAngleDeg(stepper1.currentPosition());
             float angleMotor2 = stepper_config.stepsToAngleDeg(stepper2.currentPosition());
-            printf("Current angle(sensor - motor): [%6.1f] [%6.1f] - [%6.1f] [%6.1f]\n\r", angle1, angle2, angleMotor1, angleMotor2);
-            //printf("Current position: [%6d] [%6d]\n\r", pos1, pos2);
+            float angleMotor3 = stepper_config.stepsToAngleDeg(stepper3.currentPosition());
+            printf("Current angle(sensor - motor): [%6.1f] [%6.1f] [%6.1f] - [%6.1f] [%6.1f] [%6.1f]\n\r", angle1, angle2, angle3, angleMotor1, angleMotor2, angleMotor3);
             
             last_print_time = current_time;
             
