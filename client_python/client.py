@@ -27,29 +27,29 @@ def thread_square(name):
 
     global ser
 
-    for i in range(40):
-        x = 0.2
-        y = 0.1 + i*0.0025
-        ser.write(("COORD(" + str("%.3f" % x) + "," + str("%.3f" % y) + ")\n").encode())
-        time.sleep(0.05)
-    
-    for i in range(40):
-        x = 0.2 + i*0.0025
-        y = 0.2 
-        ser.write(("COORD(" + str("%.3f" % x) + "," + str("%.3f" % y) + ")\n").encode())
-        time.sleep(0.05)
-    
-    for i in range(40):
-        x = 0.3
-        y = 0.2 - i*0.0025
-        ser.write(("COORD(" + str("%.3f" % x) + "," + str("%.3f" % y) + ")\n").encode())
-        time.sleep(0.05)
+    x_range = [0.0, 0.1, 0.1, 0.1, 0.1, 0.1, -0.1, -0.1, -0.1, -0.1, -0.1, 0.0]
+    y_range = [0.2, 0.2, 0.2, 0.3, 0.3, 0.2,  0.2,  0.2,  0.3,  0.3,  0.2, 0.2]
+    z_range = [0.1, 0.1, 0.2, 0.2, 0.1, 0.1,  0.1,  0.2,  0.2,  0.1,  0.1, 0.1]
 
-    for i in range(40):
-        x = 0.3 - i*0.0025
-        y = 0.1 
-        ser.write(("COORD(" + str("%.3f" % x) + "," + str("%.3f" % y) + ")\n").encode())
-        time.sleep(0.05)
+    x = 0.0
+    y = 0.2
+    z = 0.1
+    for i in range(len(x_range)):
+
+        x_delta = (x_range[i] - x)/40
+        y_delta = (y_range[i] - y)/40
+        z_delta = (z_range[i] - z)/40
+
+        for i in range(40):
+            x_tmp = x + i*x_delta
+            y_tmp = y + i*y_delta
+            z_tmp = z + i*z_delta
+            ser.write(("COORD(" + str("%.3f" % x_tmp) + "," + str("%.3f" % y_tmp) + "," + str("%.3f" % z_tmp) + ")\n").encode())
+            time.sleep(0.05)
+
+        x = x_tmp
+        y = y_tmp
+        z = z_tmp
         
 
 def send_start_cmd(motor, dir, value):

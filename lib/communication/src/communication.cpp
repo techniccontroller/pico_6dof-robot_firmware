@@ -57,7 +57,7 @@ std::vector<float> Communication::extract_cmd_values(const char *cmd)
 
         if (start_char != NULL && end_char != NULL)
         {
-            char value_str[10] = {'\0'};
+            char value_str[20] = {'\0'};
             start_char++;
             for (int i = 0; start_char != end_char; i++)
             {
@@ -67,7 +67,7 @@ std::vector<float> Communication::extract_cmd_values(const char *cmd)
 
             // split value_str by ',' and save to array
             char *token = strtok(value_str, ",");
-            char *values_str[2];
+            char *values_str[5];
             int i = 0;
             while (token != NULL)
             {
@@ -84,7 +84,7 @@ std::vector<float> Communication::extract_cmd_values(const char *cmd)
                 if (DEBUG_IS_ENABLED)
                 {
                     char str_buffer[40];
-                    sprintf(str_buffer, "received value: %s -> %f\n", value_str, value);
+                    sprintf(str_buffer, "received value: %s -> %f\n", values_str[k], value);
                     comm_func_write(str_buffer);
                 }
             }
@@ -220,13 +220,13 @@ void Communication::process_cmd(char *cmd)
     else if (starts_with("COORD", cmd))
     {
         std::vector<float> values = extract_cmd_values(cmd);
-        std::vector<float> jointAngles = _stepper_config->inverseKinematics(values[0], values[1], 0);
-        printf("jointAngles: %f, %f, %f\n", jointAngles[0], jointAngles[1], jointAngles[2]);
+        std::vector<float> motorAngles = _stepper_config->inverseKinematics(values[0], values[1], values[2]);
+        printf("motorAngles: %f, %f, %f\n", motorAngles[0], motorAngles[1], motorAngles[2]);
 
         long absolute[3];
-        absolute[0] = _stepper_config->angleRadToSteps(jointAngles[0]);
-        absolute[1] = _stepper_config->angleRadToSteps(-1*jointAngles[1]);
-        absolute[2] = _stepper_config->angleRadToSteps(jointAngles[2]);
+        absolute[0] = _stepper_config->angleRadToSteps(motorAngles[1]);
+        absolute[1] = _stepper_config->angleRadToSteps(-1*motorAngles[2]);
+        absolute[2] = _stepper_config->angleRadToSteps(motorAngles[0]);
 
         long distance1 = absolute[0] - _controller->getM1()->currentPosition();
         float time1 = abs(distance1) / 1000.0;
