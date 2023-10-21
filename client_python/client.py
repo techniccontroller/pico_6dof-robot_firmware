@@ -31,9 +31,13 @@ def thread_square(name):
     y_range = [0.2, 0.2, 0.2, 0.3, 0.3, 0.2,  0.2,  0.2,  0.3,  0.3,  0.2, 0.2]
     z_range = [0.1, 0.1, 0.2, 0.2, 0.1, 0.1,  0.1,  0.2,  0.2,  0.1,  0.1, 0.1]
 
-    x = 0.0
-    y = 0.2
-    z = 0.1
+    x_range = [   0.0,    0.1,    0.0,   -0.1,    0.0]
+    y_range = [   0.2,    0.2,    0.2,    0.2,    0.2]
+    z_range = [-0.117, -0.117, -0.117, -0.117, -0.117]
+
+    x = x_range[0]
+    y = y_range[0]
+    z = z_range[0]
     for i in range(len(x_range)):
 
         x_delta = (x_range[i] - x)/40
@@ -45,7 +49,7 @@ def thread_square(name):
             y_tmp = y + i*y_delta
             z_tmp = z + i*z_delta
             ser.write(("COORD(" + str("%.3f" % x_tmp) + "," + str("%.3f" % y_tmp) + "," + str("%.3f" % z_tmp) + ")\n").encode())
-            time.sleep(0.05)
+            time.sleep(0.15)
 
         x = x_tmp
         y = y_tmp
@@ -151,7 +155,7 @@ if __name__ == "__main__":
                                         [all_txts_manual[i+len(motor_names)]]
                                         ], element_justification='center'))
 
-    txt_coord = sg.Input(default_text="0,0", size=20)
+    txt_coord = sg.Input(default_text="0,0,0", size=20)
     btn_send_coord = sg.Button("SEND", size=7)
     
     layout = [  [sg.Text("Initialize all motors:")], 
