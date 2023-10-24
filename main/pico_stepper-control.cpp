@@ -9,6 +9,8 @@
 #include <StepperConfiguration.h>
 #include "controller.h"
 #include "as5600.h"
+#include "DCMotor.h"
+#include "gpio_functions.h"
 
 
 #define PICO_W 1
@@ -31,11 +33,20 @@
 #define MOTOR1_STEP_PIN 20
 #define MOTOR2_STEP_PIN 22
 #define MOTOR3_STEP_PIN 27
-#define MOTOR4_STEP_PIN 11
 #define MOTOR1_DIR_PIN 19
 #define MOTOR2_DIR_PIN 21
 #define MOTOR3_DIR_PIN 26
-#define MOTOR4_DIR_PIN 10
+
+#define MOTOR4_ENABLE_PIN 6
+#define MOTOR4_IN1_PIN 7
+#define MOTOR4_IN2_PIN 8
+#define MOTOR4_ENC_A_PIN 2
+#define MOTOR4_ENC_B_PIN 3
+#define MOTOR5_ENABLE_PIN 11
+#define MOTOR5_IN1_PIN 10
+#define MOTOR5_IN2_PIN 9
+#define MOTOR5_ENC_A_PIN 4
+#define MOTOR5_ENC_B_PIN 5
 
 #define MS1_PIN 18
 #define MS2_PIN 17
@@ -49,6 +60,30 @@
 #else
 #define LED_PIN 25
 #endif
+
+volatile long g_encoder_pos_motor4 = 0; /**< Current encoder position of motor4 */
+volatile long g_encoder_pos_motor5 = 0; /**< Current encoder position of motor5 */
+
+void callback_encoder(uint gpio, uint32_t events)
+{
+    if(gpio == MOTOR4_ENC_A_PIN || gpio == MOTOR4_ENC_B_PIN){
+        if(gpio_func_get_state(MOTOR4_ENC_A_PIN) == gpio_func_get_state(MOTOR4_ENC_B_PIN)){
+            g_encoder_pos_motor4++;
+        }
+        else{
+            g_encoder_pos_motor4--;
+        }
+    }
+
+    if(gpio == MOTOR5_ENC_A_PIN || gpio == MOTOR5_ENC_B_PIN){
+        if(gpio_func_get_state(MOTOR5_ENC_A_PIN) == gpio_func_get_state(MOTOR5_ENC_B_PIN)){
+            g_encoder_pos_motor5++;
+        }
+        else{
+            g_encoder_pos_motor5--;
+        }
+    }
+}
 
 void setLEDState(bool state)
 {
@@ -87,11 +122,25 @@ int main()
     AccelStepper stepper3(AccelStepper::DRIVER, MOTOR3_STEP_PIN, MOTOR3_DIR_PIN);
     MultiStepper steppers;
     StepperConfiguration stepper_config(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, 4, 60.0/16.0 * 60.0/16.0);
+
+    gpio_func_set_mode(MOTOR4_ENC_A_PIN, GPIO_FUNC_INPUT);
+    gpio_func_add_irq(MOTOR4_ENC_A_PIN, GPIO_FUNC_IRQ_EDGE_RISE | GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
+    gpio_func_set_mode(MOTOR4_ENC_B_PIN, GPIO_FUNC_INPUT);
+    gpio_func_add_irq(MOTOR4_ENC_B_PIN, GPIO_FUNC_IRQ_EDGE_RISE | GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
+    gpio_func_set_mode(MOTOR5_ENC_A_PIN, GPIO_FUNC_INPUT);
+    gpio_func_add_irq(MOTOR5_ENC_A_PIN, GPIO_FUNC_IRQ_EDGE_RISE | GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
+    gpio_func_set_mode(MOTOR5_ENC_B_PIN, GPIO_FUNC_INPUT);
+    gpio_func_add_irq(MOTOR5_ENC_B_PIN, GPIO_FUNC_IRQ_EDGE_RISE | GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
+    
+    DCMotor motor4(MOTOR4_ENABLE_PIN, MOTOR4_IN1_PIN, MOTOR4_IN2_PIN, &g_encoder_pos_motor4);
+    DCMotor motor5(MOTOR5_ENABLE_PIN, MOTOR5_IN1_PIN, MOTOR5_IN2_PIN, &g_encoder_pos_motor5);
     
     Controller controller;
     controller.addM1(&stepper1, &encoder1);
     controller.addM2(&stepper2, &encoder2);
     controller.addM3(&stepper3, NULL);
+    controller.addM4(&motor4);
+    controller.addM5(&motor5);
     Communication comm(&controller, &stepper_config);
 
     // Configure each stepper
@@ -153,17 +202,18 @@ int main()
                 printf("ERROR with angle 2\n\r");
             } 
             
-            float angle1 = (encoder1.getCorrectedAngle() * 360.0) / 0xFFF;
-            float angle2 = (encoder2.getCorrectedAngle() * 360.0) / 0xFFF;
-            float angle3 = 0.0;
-            int pos1 = stepper1.currentPosition();
-            int pos2 = stepper2.currentPosition();
-            int pos3 = stepper3.currentPosition();
+            float angleEnc1 = (encoder1.getCorrectedAngle() * 360.0) / 0xFFF;
+            float angleEnc2 = (encoder2.getCorrectedAngle() * 360.0) / 0xFFF;
+            float angleEnc3 = 0.0;
+            float angleEnc4 = 0.0;
+            float angleEnc5 = 0.0;
             float angleMotor1 = stepper_config.stepsToAngleDeg(stepper1.currentPosition());
             float angleMotor2 = stepper_config.stepsToAngleDeg(stepper2.currentPosition());
             float angleMotor3 = stepper_config.stepsToAngleDeg(stepper3.currentPosition());
-            printf("Current angle(sensor - motor): [%6.1f] [%6.1f] [%6.1f] - [%6.1f] [%6.1f] [%6.1f]\n\r", angle1, angle2, angle3, angleMotor1, angleMotor2, angleMotor3);
-            
+            float angleMotor4 = g_encoder_pos_motor4;
+            float angleMotor5 = g_encoder_pos_motor5;
+            printf("Current angle(motor ): [%6.1f] [%6.1f] [%6.1f] [%6.1f] [%6.1f]\n\r", angleMotor1, angleMotor2, angleMotor3, angleMotor4, angleMotor5);
+            printf("Current angle(sensor): [%6.1f] [%6.1f] [%6.1f] [%6.1f] [%6.1f]\n\r\n\r", angleEnc1, angleEnc2, angleEnc3, angleEnc4, angleEnc5);
             last_print_time = current_time;
             
         }

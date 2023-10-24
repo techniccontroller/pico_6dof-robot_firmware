@@ -20,7 +20,7 @@ target_link_libraries(pico_stepper-control
         hardware_irq
         comm_hal
         gpio_hal
-        
+        dcmotor_lib
         stepper_lib
         communication_lib
         as5600_lib

@@ -15,6 +15,9 @@
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 
+#define HIGH 1
+#define LOW 0
+
 #define GPIO_FUNC_INPUT 0
 #define GPIO_FUNC_INPUT_PULLUP 1
 #define GPIO_FUNC_INPUT_PULLDOWN 2

@@ -38,6 +38,10 @@ uint8_t Communication::extract_related_motor(char *cmd)
     {
         result = M4;
     }
+    else if (contains("M5", (const char*)cmd))
+    {
+        result = M5;
+    }
 
     return result;
 }
@@ -142,6 +146,14 @@ void Communication::process_cmd(char *cmd)
                     }
                     comm_func_write("MOTOR M3 is initialized\n");
                     break;
+                case M4:
+                    _controller->getM4()->setCurrentPosition(0);
+                    comm_func_write("MOTOR M4 is initialized\n");
+                    break;
+                case M5:
+                    _controller->getM5()->setCurrentPosition(0);
+                    comm_func_write("MOTOR M5 is initialized\n");
+                    break;
                 default:    
                     break;
 
@@ -195,6 +207,16 @@ void Communication::process_cmd(char *cmd)
             
             case M3:
                 _controller->setM3Velocity(speed);
+                break;
+            
+            case M4:
+                _controller->setM4Velocity(0.5*speed);
+                _controller->setM5Velocity(0.5*speed);
+                break;
+            
+            case M5:
+                _controller->setM4Velocity(0.5*speed);
+                _controller->setM5Velocity(-0.5*speed);
                 break;
             
             default:

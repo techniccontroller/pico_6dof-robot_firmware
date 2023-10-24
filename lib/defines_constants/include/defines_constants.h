@@ -19,5 +19,6 @@ typedef enum
 	M1,
     M2,
     M3,
-    M4
+    M4,
+    M5
 }motor_t;

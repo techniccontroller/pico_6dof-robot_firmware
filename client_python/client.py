@@ -6,7 +6,7 @@ import time
 
 COM_PORT_PICO_DEFAULT = "COM4"
 
-motor_names = ['M1', 'M2', 'M3', 'M4']
+motor_names = ['M1', 'M2', 'M3', 'M4', 'M5']
 
 stop_threads = False
 active_motor = ""
