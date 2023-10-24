@@ -21,7 +21,7 @@ target_link_libraries(pico_stepper-control
         comm_hal
         gpio_hal
         
-        motor_lib
+        stepper_lib
         communication_lib
         as5600_lib
         )
