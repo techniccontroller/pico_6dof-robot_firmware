@@ -63,23 +63,29 @@
 
 volatile long g_encoder_pos_motor4 = 0; /**< Current encoder position of motor4 */
 volatile long g_encoder_pos_motor5 = 0; /**< Current encoder position of motor5 */
+volatile int g_direction_motor4 = 0; /**< Current direction of motor4 */
+volatile int g_direction_motor5 = 0; /**< Current direction of motor5 */
 
 void callback_encoder(uint gpio, uint32_t events)
 {
     if(gpio == MOTOR4_ENC_A_PIN || gpio == MOTOR4_ENC_B_PIN){
-        if(gpio_func_get_state(MOTOR4_ENC_A_PIN) == gpio_func_get_state(MOTOR4_ENC_B_PIN)){
+        if(g_direction_motor4 == 1)
+        {
             g_encoder_pos_motor4++;
         }
-        else{
+        else if(g_direction_motor4 == -1)
+        {
             g_encoder_pos_motor4--;
         }
     }
 
     if(gpio == MOTOR5_ENC_A_PIN || gpio == MOTOR5_ENC_B_PIN){
-        if(gpio_func_get_state(MOTOR5_ENC_A_PIN) == gpio_func_get_state(MOTOR5_ENC_B_PIN)){
+        if(g_direction_motor5 == 1)
+        {
             g_encoder_pos_motor5++;
         }
-        else{
+        else if(g_direction_motor5 == -1)
+        {
             g_encoder_pos_motor5--;
         }
     }
@@ -124,16 +130,16 @@ int main()
     StepperConfiguration stepper_config(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, 4, 60.0/16.0 * 60.0/16.0);
 
     gpio_func_set_mode(MOTOR4_ENC_A_PIN, GPIO_FUNC_INPUT);
-    gpio_func_add_irq(MOTOR4_ENC_A_PIN, GPIO_FUNC_IRQ_EDGE_RISE | GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
+    gpio_func_add_irq(MOTOR4_ENC_A_PIN, GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
     gpio_func_set_mode(MOTOR4_ENC_B_PIN, GPIO_FUNC_INPUT);
-    gpio_func_add_irq(MOTOR4_ENC_B_PIN, GPIO_FUNC_IRQ_EDGE_RISE | GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
+    //gpio_func_add_irq(MOTOR4_ENC_B_PIN, GPIO_FUNC_IRQ_EDGE_RISE | GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
     gpio_func_set_mode(MOTOR5_ENC_A_PIN, GPIO_FUNC_INPUT);
-    gpio_func_add_irq(MOTOR5_ENC_A_PIN, GPIO_FUNC_IRQ_EDGE_RISE | GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
+    gpio_func_add_irq(MOTOR5_ENC_A_PIN, GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
     gpio_func_set_mode(MOTOR5_ENC_B_PIN, GPIO_FUNC_INPUT);
-    gpio_func_add_irq(MOTOR5_ENC_B_PIN, GPIO_FUNC_IRQ_EDGE_RISE | GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
+    //gpio_func_add_irq(MOTOR5_ENC_B_PIN, GPIO_FUNC_IRQ_EDGE_RISE | GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
     
-    DCMotor motor4(MOTOR4_ENABLE_PIN, MOTOR4_IN1_PIN, MOTOR4_IN2_PIN, &g_encoder_pos_motor4);
-    DCMotor motor5(MOTOR5_ENABLE_PIN, MOTOR5_IN1_PIN, MOTOR5_IN2_PIN, &g_encoder_pos_motor5);
+    DCMotor motor4(MOTOR4_ENABLE_PIN, MOTOR4_IN1_PIN, MOTOR4_IN2_PIN, &g_encoder_pos_motor4, &g_direction_motor4);
+    DCMotor motor5(MOTOR5_ENABLE_PIN, MOTOR5_IN1_PIN, MOTOR5_IN2_PIN, &g_encoder_pos_motor5, &g_direction_motor5);
     
     Controller controller;
     controller.addM1(&stepper1, &encoder1);
