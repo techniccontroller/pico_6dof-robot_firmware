@@ -22,26 +22,38 @@
 // This example will use I2C0 on GPIO8 (SDA) and GPIO9 (SCL) running at 400KHz.
 // Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
 #define I2C_PORT0 i2c0
+#define I2C_SDA0 12
+#define I2C_SCL0 13
+
 #define I2C_PORT1 i2c1
-#define I2C_SDA0 14
-#define I2C_SCL0 15
-#define I2C_SDA1 12
-#define I2C_SCL1 13
+#define I2C_SDA1 14
+#define I2C_SCL1 15
+
+
+#define TCAADDR 0x70
+#define ASADDR 0x36
 
 
 // Pin defines
+// Motor 1 is the motor for Joint 1
 #define MOTOR1_STEP_PIN 20
-#define MOTOR2_STEP_PIN 22
-#define MOTOR3_STEP_PIN 27
 #define MOTOR1_DIR_PIN 19
+
+// Motor 2 is the motor for Joint 2
+#define MOTOR2_STEP_PIN 22
 #define MOTOR2_DIR_PIN 21
+
+// Motor 3 is the motor for Joint 3
+#define MOTOR3_STEP_PIN 27
 #define MOTOR3_DIR_PIN 26
 
+// Motor 4 and Motor 5 working together for Joint 4 and Joint 5
 #define MOTOR4_ENABLE_PIN 6
 #define MOTOR4_IN1_PIN 7
 #define MOTOR4_IN2_PIN 8
 #define MOTOR4_ENC_A_PIN 2
 #define MOTOR4_ENC_B_PIN 3
+
 #define MOTOR5_ENABLE_PIN 11
 #define MOTOR5_IN1_PIN 10
 #define MOTOR5_IN2_PIN 9
@@ -116,8 +128,11 @@ int main()
         gpio_set_dir(LED_PIN, GPIO_OUT);
     }
 
-    AS5600 encoder2(I2C_PORT0, I2C_SCL0, I2C_SDA0, 0x36);
-    AS5600 encoder1(I2C_PORT1, I2C_SCL1, I2C_SDA1, 0x36);
+    AS5600 encoderJ2(I2C_PORT0, I2C_SCL0, I2C_SDA0, ASADDR, 4, TCAADDR);
+    AS5600 encoderJ3(I2C_PORT0, I2C_SCL0, I2C_SDA0, ASADDR, 5, TCAADDR);
+    AS5600 encoderJ4(I2C_PORT0, I2C_SCL0, I2C_SDA0, ASADDR, 6, TCAADDR);
+    AS5600 encoderJ5(I2C_PORT0, I2C_SCL0, I2C_SDA0, ASADDR, 7, TCAADDR);
+    
     // Make the I2C pins available to picotool
     //bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA1_PIN, PICO_DEFAULT_I2C_SCL1_PIN, GPIO_FUNC_I2C));
 
@@ -142,8 +157,8 @@ int main()
     DCMotor motor5(MOTOR5_ENABLE_PIN, MOTOR5_IN1_PIN, MOTOR5_IN2_PIN, &g_encoder_pos_motor5, &g_direction_motor5);
     
     Controller controller;
-    controller.addM1(&stepper1, &encoder1);
-    controller.addM2(&stepper2, &encoder2);
+    controller.addM1(&stepper1, &encoderJ2);
+    controller.addM2(&stepper2, &encoderJ3);
     controller.addM3(&stepper3, NULL);
     controller.addM4(&motor4);
     controller.addM5(&motor5);
@@ -198,21 +213,21 @@ int main()
         uint32_t current_time = time_us_64() / 1000;
         if((current_time - last_print_time > 500))
         {
-            uint8_t status1 = (uint8_t) encoder1.getStatus();
+            uint8_t status1 = (uint8_t) encoderJ2.getStatus();
             if (!(status1 & AS560x_STATUS_MAGNET_DETECTED)) {
-                printf("ERROR with angle 1\n\r");
+                printf("ERROR with angle J2\n\r");
             } 
 
-            uint8_t status2 = (uint8_t) encoder2.getStatus();
+            uint8_t status2 = (uint8_t) encoderJ3.getStatus();
             if (!(status2 & AS560x_STATUS_MAGNET_DETECTED)) {
-                printf("ERROR with angle 2\n\r");
+                printf("ERROR with angle J3\n\r");
             } 
             
-            float angleEnc1 = (encoder1.getCorrectedAngle() * 360.0) / 0xFFF;
-            float angleEnc2 = (encoder2.getCorrectedAngle() * 360.0) / 0xFFF;
+            float angleEnc1 = (encoderJ2.getCorrectedAngle() * 360.0) / 0xFFF;
+            float angleEnc2 = (encoderJ3.getCorrectedAngle() * 360.0) / 0xFFF;
             float angleEnc3 = 0.0;
-            float angleEnc4 = 0.0;
-            float angleEnc5 = 0.0;
+            float angleEnc4 = (encoderJ4.getCorrectedAngle() * 360.0) / 0xFFF;;
+            float angleEnc5 = (encoderJ5.getCorrectedAngle() * 360.0) / 0xFFF;;
             float angleMotor1 = stepper_config.stepsToAngleDeg(stepper1.currentPosition());
             float angleMotor2 = stepper_config.stepsToAngleDeg(stepper2.currentPosition());
             float angleMotor3 = stepper_config.stepsToAngleDeg(stepper3.currentPosition());

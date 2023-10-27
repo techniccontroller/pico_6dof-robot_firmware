@@ -30,7 +30,7 @@ class AS5600 {
 
 
 public:
-    AS5600(i2c_inst_t * i2c_port, uint8_t scl_pin, uint8_t sda_pin, uint8_t addr);
+    AS5600(i2c_inst_t * i2c_port, uint8_t scl_pin, uint8_t sda_pin, uint8_t addr, uint8_t mux_channel, uint8_t mux_addr);
     int readAngle();
     int getCorrectedAngle();
     uint8_t getStatus();
@@ -41,6 +41,7 @@ public:
 
 private:
 
+    void muxselect(uint8_t i);
     uint16_t readReg(int addr, bool wide, uint16_t mask);
     void printReg16(const char *formatStr, int addr, uint16_t mask);
     void printReg8(const char *formatStr, int addr, uint8_t mask);
@@ -48,6 +49,8 @@ private:
     uint8_t g_addr;
     i2c_inst_t * g_i2c_port;
     int g_zero = 0;
+    uint8_t g_mux_channel;
+    uint8_t g_mux_addr;
 };
 
 

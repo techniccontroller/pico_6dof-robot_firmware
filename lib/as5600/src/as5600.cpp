@@ -4,7 +4,9 @@
 #include <machine/endian.h>
 
 
-AS5600::AS5600(i2c_inst_t * i2c_port, uint8_t scl_pin, uint8_t sda_pin, uint8_t addr) {
+AS5600::AS5600(i2c_inst_t * i2c_port, uint8_t scl_pin, uint8_t sda_pin, uint8_t addr, uint8_t mux_channel, uint8_t mux_addr) {
+    g_mux_channel = mux_channel;
+    g_mux_addr = mux_addr;
     g_i2c_port = i2c_port;
     g_addr = addr;
     i2c_init(g_i2c_port, 100 * 1000);
@@ -43,7 +45,21 @@ uint8_t AS5600::getStatus() {
     return (uint8_t) readReg(AS560x_STATUS_REG, false, 0x38);
 }
 
+/**
+ * @brief Select channel on TCA9548A I2C multiplexer
+ * 
+ * @param i Channel to select (0-7)
+ */
+void AS5600::muxselect(uint8_t i) {
+  if (i > 7) return;
+  int value = 1 << i;
+  int ret = i2c_write_blocking(g_i2c_port, g_mux_addr, (uint8_t *) &value, 1, false);
+}
+
 uint16_t AS5600::readReg(int addr, bool wide, uint16_t mask) {
+
+    muxselect(g_mux_channel);
+
     uint16_t buf;
     int result = i2c_write_timeout_us(g_i2c_port, g_addr, (uint8_t *) &addr, 1, true, I2C_TIMEOUT_US);
     if (result <= 0) {
