@@ -1,4 +1,4 @@
-#include "as5600.h"
+#include "AS5600.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <machine/endian.h>
@@ -18,6 +18,7 @@ AS5600::AS5600(i2c_inst_t * i2c_port, uint8_t scl_pin, uint8_t sda_pin, uint8_t 
 
 void AS5600::setZero() {
     g_zero = readAngle();
+    printf("Zero set to %d\n\r", g_zero);
 }
 
 void AS5600::setZero(int zero) {
@@ -39,6 +40,10 @@ int AS5600::getCorrectedAngle() {
         corrected += AS5601_ANGLE_MAX;
     }
     return corrected;
+}
+
+float AS5600::getCorrectedAngleDeg() {
+    return (float) getCorrectedAngle() / AS5601_ANGLE_MAX * 360.0;
 }
 
 uint8_t AS5600::getStatus() {

@@ -1,11 +1,10 @@
-#include "communication.h"
+#include "Communication.h"
 #include <stdlib.h>
 
 
-Communication::Communication(Controller *controller, StepperConfiguration *stepper_config)
+Communication::Communication(Robot *robot)
 {
-    _controller = controller;
-    _stepper_config = stepper_config;
+    m_robot = robot;
 }
 
 bool Communication::starts_with(const char *pre, const char *str)
@@ -20,32 +19,59 @@ bool Communication::contains(const char *substring, const char *str)
 
 uint8_t Communication::extract_related_motor(char *cmd)
 {
-    uint8_t result = 99;
+    uint8_t result = Motor::MNONE;
 
     if (contains("M1", (const char*)cmd))
     {
-        result = M1;
+        result = Motor::M1;
     }
     else if (contains("M2", (const char*)cmd))
     {
-        result = M2;
+        result = Motor::M2;
     }
     else if (contains("M3", (const char*)cmd))
     {
-        result = M3;
+        result = Motor::M3;
     }
     else if (contains("M4", (const char*)cmd))
     {
-        result = M4;
+        result = Motor::M4;
     }
     else if (contains("M5", (const char*)cmd))
     {
-        result = M5;
+        result = Motor::M5;
     }
 
     return result;
 }
 
+uint8_t Communication::extract_related_joint(char *cmd)
+{
+    uint8_t result = Joint::JNONE;
+
+    if (contains("J1", (const char*)cmd))
+    {
+        result = Joint::J1;
+    }
+    else if (contains("J2", (const char*)cmd))
+    {
+        result = Joint::J2;
+    }
+    else if (contains("J3", (const char*)cmd))
+    {
+        result = Joint::J3;
+    }
+    else if (contains("J4", (const char*)cmd))
+    {
+        result = Joint::J4;
+    }
+    else if (contains("J5", (const char*)cmd))
+    {
+        result = Joint::J5;
+    }
+
+    return result;
+}
 
 std::vector<float> Communication::extract_cmd_values(const char *cmd)
 {
@@ -101,82 +127,25 @@ void Communication::process_cmd(char *cmd)
 {
     if (_manual_drive)
     {
-        uint8_t motor = extract_related_motor(cmd);
+        uint8_t joint = extract_related_joint(cmd);
 
-        
         if (contains("_INIT", cmd))
         {
-            switch(motor){
-                case M1:
-                    _controller->initializeM1();
-                    comm_func_write("Init MOTOR M1\n");
-                    break;
-                case M2:
-                    _controller->initializeM2();
-                    comm_func_write("Init MOTOR M2\n");
-                    break;
-                case M3:
-                    _controller->initializeM3();
-                    comm_func_write("Init MOTOR M3\n");
-                    break;
-
-                default:    
-                    break;
-
-            }
+            m_robot->initJoint(joint);
+            char str_buffer[40];
+            sprintf(str_buffer, "Init Joint J%d\n", joint);
+            comm_func_write(str_buffer);
         }
         else if (contains("_ZERO", cmd))
         {
-            switch(motor){
-                case M1:
-                    if(_controller->getE1() != NULL){
-                        _controller->getE1()->setZero();
-                    }
-                    comm_func_write("MOTOR M1 is initialized\n");
-                    break;
-                case M2:
-                    if(_controller->getE2() != NULL){
-                        _controller->getE2()->setZero();
-                    }
-                    comm_func_write("MOTOR M2 is initialized\n");
-                    break;
-                case M3:
-                    if(_controller->getE3() != NULL){
-                        _controller->getE3()->setZero();
-                    }
-                    comm_func_write("MOTOR M3 is initialized\n");
-                    break;
-                case M4:
-                    _controller->getM4()->setCurrentPosition(0);
-                    comm_func_write("MOTOR M4 is initialized\n");
-                    break;
-                case M5:
-                    _controller->getM5()->setCurrentPosition(0);
-                    comm_func_write("MOTOR M5 is initialized\n");
-                    break;
-                default:    
-                    break;
-
-            }
+            m_robot->zeroJoint(joint);
+            char str_buffer[40];
+            sprintf(str_buffer, "Zero Joint J%d\n", joint);
+            comm_func_write(str_buffer);
         }
         else if (contains("_SET", cmd))
         {
-            switch(motor){
-                case M1:
-                    _controller->setM1Position(extract_cmd_values(cmd)[0]);
-                    comm_func_write("MOTOR M1 is set\n");
-                    break;
-                case M2:
-                    _controller->setM2Position(extract_cmd_values(cmd)[0]);
-                    comm_func_write("MOTOR M2 is set\n");
-                    break;
-                case M3:
-                    _controller->setM3Position(extract_cmd_values(cmd)[0]);
-                    comm_func_write("MOTOR M3 is set\n");
-                    break;
-                default:    
-                    break;
-            }
+            m_robot->setJointPosition(joint, extract_cmd_values(cmd)[0]);
         }
         else
         {
@@ -195,36 +164,10 @@ void Communication::process_cmd(char *cmd)
                 speed *= -1;
             }
 
-            switch (motor)
-            {
-            case M1:
-                _controller->setM1Velocity(speed);
-                break;
-            
-            case M2:
-                _controller->setM2Velocity(speed);
-                break;
-            
-            case M3:
-                _controller->setM3Velocity(speed);
-                break;
-            
-            case M4:
-                _controller->setM4Velocity(0.5*speed);
-                _controller->setM5Velocity(0.5*speed);
-                break;
-            
-            case M5:
-                _controller->setM4Velocity(0.5*speed);
-                _controller->setM5Velocity(-0.5*speed);
-                break;
-            
-            default:
-                break;
-            }
+            m_robot->setJointVelocity(joint, speed);
             
             char str_buffer[20];
-            sprintf(str_buffer, "motor: %d, spd: %d", motor, speed);
+            sprintf(str_buffer, "Set Velocity, joint: %d, spd: %d", joint, speed);
             comm_func_write(str_buffer);
         }
     }
@@ -241,44 +184,9 @@ void Communication::process_cmd(char *cmd)
     }
     else if (starts_with("COORD", cmd))
     {
-        std::vector<float> values = extract_cmd_values(cmd);
-        std::vector<float> motorAngles = _stepper_config->inverseKinematics(values[0], values[1], values[2]);
-        printf("motorAngles: %f, %f, %f\n", motorAngles[0], motorAngles[1], motorAngles[2]);
+        std::vector<float> pose = extract_cmd_values(cmd);
 
-        long absolute[3];
-        absolute[0] = _stepper_config->angleRadToSteps(motorAngles[1]);
-        absolute[1] = _stepper_config->angleRadToSteps(-1*motorAngles[2]);
-        absolute[2] = _stepper_config->angleRadToSteps(motorAngles[0]);
-
-        long distance1 = absolute[0] - _controller->getM1()->currentPosition();
-        float time1 = abs(distance1) / 3000.0;
-        
-        long distance2 = absolute[1] - _controller->getM2()->currentPosition();
-        float time2 = abs(distance2) / 3000.0;
-        
-        long distance3 = absolute[2] - _controller->getM3()->currentPosition();
-        float time3 = abs(distance3) / 3000.0;
-
-        float longestTime = time1;
-        if (time2 > longestTime){
-            longestTime = time2;
-        }
-        if (time3 > longestTime){
-            longestTime = time3;
-        }
-
-        if (longestTime > 0.0) {
-            // Now work out a new max speed for each stepper so they will all 
-            // arrived at the same time of longestTime
-            float speed1 = distance1 / longestTime;
-            _controller->setM1PositionVelocity(absolute[0], speed1);
-
-            float speed2 = distance2 / longestTime;
-            _controller->setM2PositionVelocity(absolute[1], speed2);
-
-            float speed3 = distance3 / longestTime;
-            _controller->setM3PositionVelocity(absolute[2], speed3);
-        }
+        m_robot->moveToPose(pose);
         comm_func_write("COORD is set\n");
     }
 }

@@ -8,6 +8,7 @@ class DCMotor {
 
     public:
 
+    DCMotor(uint8_t enable_pin, uint8_t dir1_pin, uint8_t dir2_pin);
     DCMotor(uint8_t enable_pin, uint8_t dir1_pin, uint8_t dir2_pin, volatile long *current_pos, volatile int *direction);
 
     void ctrlOutput(int output);
@@ -27,6 +28,8 @@ class DCMotor {
     uint8_t m_enable_pin;
     uint8_t m_dir1_pin;
     uint8_t m_dir2_pin;
+    long local_current_pos;
+    int local_direction;
 
     float m_speed;
     volatile long * m_current_pos;

@@ -24,6 +24,8 @@ target_link_libraries(pico_stepper-control
         stepper_lib
         communication_lib
         as5600_lib
+        EEPROM_lib
+        robot_lib
         )
 
 pico_add_extra_outputs(pico_stepper-control)

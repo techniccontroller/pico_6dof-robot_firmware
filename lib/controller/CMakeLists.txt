@@ -1,7 +1,7 @@
 add_library(
     controller_lib
-    src/controller.cpp
-    include/controller.h
+    src/Controller.cpp
+    include/Controller.h
 )
 
 target_link_libraries(controller_lib defines_constants_lib stepper_lib as5600_lib dcmotor_lib)

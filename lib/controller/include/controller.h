@@ -1,5 +1,5 @@
 /**
- * @file controller.h
+ * @file Controller.h
  * @author Edgar W (mail@techniccontroller.com)
  * @brief 
  * @version 0.1

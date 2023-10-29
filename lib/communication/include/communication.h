@@ -1,5 +1,5 @@
 /**
- * @file communication.h
+ * @file Communication.h
  * @author Edgar W. (mail@techniccontrollercom)
  * @brief This library handles all communication related functionality. It acts as input layer to the external client.
  * @version 0.2
@@ -13,12 +13,8 @@
 #include <string.h>
 #include "defines_constants.h"
 #include "comm_functions.h"
-#include "AccelStepper.h"
-#include "MultiStepper.h"
-#include "AS5600.h"
-#include "controller.h"
-#include "StepperConfiguration.h"
 #include <vector>
+#include <Robot.h>
 
 /**
  * @brief Set this flag to 1 to receive additional debug output via the communication interface
@@ -29,7 +25,7 @@
 class Communication
 {
 public:
-    Communication(Controller *controller, StepperConfiguration *stepper_config=NULL);
+    Communication(Robot *robot);
 
     /**
      * @brief Check if new commands have been received and process them if so
@@ -52,6 +48,14 @@ private:
     static uint8_t extract_related_motor(char *cmd);
 
     /**
+     * @brief Extract the joint number from a command
+     *
+     * @param cmd given command, e.g. 'J1'
+     * @return uint8_t joint number
+     */
+    static uint8_t extract_related_joint(char *cmd);
+
+    /**
      * @brief extract control value from command if available
      *
      * @param cmd given command, with a value in brackets 'MY_COMMAND(value)'
@@ -62,6 +66,5 @@ private:
 
     char buffer[BUFFER_SIZE];               /**< Buffer for incoming commands. */
     bool _manual_drive = false;             /**< Flag wheter the manual driving mode is active. */
-    Controller *_controller;                /**< Controller. */
-    StepperConfiguration *_stepper_config;  /**< Stepper configuration. */
+    Robot *m_robot;                         /**< Pointer to the robot object. */
 };

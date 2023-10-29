@@ -3,4 +3,8 @@ add_subdirectory(communication)
 add_subdirectory(defines_constants)
 add_subdirectory(stepper)
 add_subdirectory(controller)
+add_subdirectory(jointcontroller)
 add_subdirectory(dcmotor)
+add_subdirectory(eeprom)
+add_subdirectory(robot)
+
