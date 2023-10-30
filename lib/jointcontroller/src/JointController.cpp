@@ -160,7 +160,7 @@ void JointController::step()
     float speed_m5_j4 = 0;
     float speed_m5_j5 = 0;
     
-    float angle4 = 0;
+    float angle = 0;
     float speed = 0;
 
     switch (m_state_j4)
@@ -170,37 +170,34 @@ void JointController::step()
         speed_m5_j4 = 0;
         break;
     case INITIALIZATION:
-        if(m_encoder4 != NULL){
-            angle4 = (m_encoder4->getCorrectedAngle() * 360.0) / 0xFFF;
-        } else {
-            angle4 = 0;
-        }
-        if(angle4 > 180){
-            angle4 = angle4 - 360;
-        }
-        if(abs(angle4) < 0.1) {
-            m_state_j4 = JointControlState::POSITION_CONTROL;
-            m_setpoint_pos_j4 = 0;
-            m_setpoint_vel_j4 = INIT_VEL_DCMOTOR;
-            printf("J4 - initialized\n\r");
-        } else {
-            speed = std::clamp(20 * angle4, -INIT_VEL_DCMOTOR, INIT_VEL_DCMOTOR);
-            speed_m4_j4 = speed;
-            speed_m5_j4 = speed;
-            printf("J4 - angle: %f, speed: %f\n\r", angle4, speed);
-        }
+        m_state_j4 = JointControlState::POSITION_CONTROL;
+        m_setpoint_pos_j4 = 0;
+        m_setpoint_vel_j4 = INIT_VEL_DCMOTOR;
         break;
     case POSITION_CONTROL:
         if(m_encoder4 != NULL){
-            angle4 = (m_encoder4->getCorrectedAngle()* 360.0) / 0xFFF;
-            if(angle4 > 180){
-                angle4 = angle4 - 360;
+            angle = (m_encoder4->getCorrectedAngle()* 360.0) / 0xFFF;
+            if(angle > 180){
+                angle = angle - 360;
             }
-            float diff = m_setpoint_pos_j4 - angle4;
-            speed = std::clamp(200 * diff, -abs(m_setpoint_vel_j4), abs(m_setpoint_vel_j4));
-            speed_m4_j4 = speed;
-            speed_m5_j4 = speed;
-            printf("J4 - angle: %f, speed: %f\n\r", angle4, speed);
+
+            // PID controller
+            float diff = m_setpoint_pos_j4 - angle;
+            float p = pid_p_j5;
+            float i = pid_i_j5;
+            float d = pid_d_j5;
+            float dt = 0.01;
+            static float integral = 0;
+            static float derivative = 0;
+            static float prev_diff = 0;
+            integral = integral + diff * dt;
+            derivative = (diff - prev_diff) / dt;
+            prev_diff = diff;
+            speed = p * diff + i * integral + d * derivative;
+            speed = std::clamp(speed, -INIT_VEL_DCMOTOR, INIT_VEL_DCMOTOR);
+            speed_m4_j4 = -speed;
+            speed_m5_j4 = -speed;
+            printf("J4 - angle: %f, speed: %f\n\r", angle, speed);
         }
         else {
             m_state_j4 = JointControlState::DISABLED;
@@ -215,12 +212,46 @@ void JointController::step()
     switch (m_state_j5)
     {   
     case DISABLED:
+        speed_m4_j5 = 0;
+        speed_m5_j5 = 0;
         break;
     case INITIALIZATION:
+        m_state_j5 = JointControlState::POSITION_CONTROL;
+        m_setpoint_pos_j5 = 0;
+        m_setpoint_vel_j5 = INIT_VEL_DCMOTOR;
         break;
     case POSITION_CONTROL:
+        if(m_encoder5 != NULL){
+            angle = (m_encoder5->getCorrectedAngle() * 360.0) / 0xFFF;
+            if(angle > 180){
+                angle = angle - 360;
+            }
+            
+            // PID controller
+            float diff = m_setpoint_pos_j5 - angle;
+            float p = pid_p_j5;
+            float i = pid_i_j5;
+            float d = pid_d_j5;
+            float dt = 0.01;
+            static float integral = 0;
+            static float derivative = 0;
+            static float prev_diff = 0;
+            integral = integral + diff * dt;
+            derivative = (diff - prev_diff) / dt;
+            prev_diff = diff;
+            speed = p * diff + i * integral + d * derivative;
+            speed = std::clamp(speed, -INIT_VEL_DCMOTOR, INIT_VEL_DCMOTOR);
+            speed_m4_j5 = -speed;
+            speed_m5_j5 = speed;
+            printf("J5 - angle: %f, speed: %f\n\r", angle, speed);
+        }
+        else {
+            m_state_j5 = JointControlState::DISABLED;
+        }
         break;
     case VELOCITY_CONTROL:
+        speed_m4_j5 = m_setpoint_vel_j5;
+        speed_m5_j5 = -m_setpoint_vel_j5;
         break;
     }
 
@@ -542,6 +573,20 @@ void JointController::setJ5PositionVelocity(float position, float velocity)
     printf("J5 - setpoint pos: %f, vel: %f\n\r", m_setpoint_pos_j5, m_setpoint_vel_j5);
 }
 
+void JointController::setJ4PID(float p, float i, float d)
+{
+    pid_p_j4 = p;
+    pid_i_j4 = i;
+    pid_d_j4 = d;
+}
+
+void JointController::setJ5PID(float p, float i, float d)
+{
+    pid_p_j5 = p;
+    pid_i_j5 = i;
+    pid_d_j5 = d;
+}
+
 /**
  * @brief Move Robot to a given configuration
  * 
@@ -586,14 +631,14 @@ void JointController::moveToConfiguration(std::vector<float> config, float veloc
         // arrived at the same time of longestTime
         float speed1_steps = stepsToGo1 / longestTime;
         float speed1 = m_stepperConfiguration->stepsToAngleDeg(speed1_steps);
-        setJ1PositionVelocity(config_steps[0], speed1);
+        setJ1PositionVelocity(config[0], speed1);
 
         float speed2_steps = stepsToGo2 / longestTime;
         float speed2 = m_stepperConfiguration->stepsToAngleDeg(speed2_steps);
-        setJ2PositionVelocity(config_steps[1], speed2);
+        setJ2PositionVelocity(config[1], speed2);
 
         float speed3_steps = stepsToGo3 / longestTime;
         float speed3 = m_stepperConfiguration->stepsToAngleDeg(speed3_steps);
-        setJ3PositionVelocity(config_steps[2], speed3);
+        setJ3PositionVelocity(config[2], speed3);
     }
 }

@@ -90,29 +90,4 @@ float StepperConfiguration::stepsToAngleRad(int steps){
     return angle;
 }
 
-std::vector<float> StepperConfiguration::inverseKinematics(float x, float y, float z){
-    float l1 = 0.21;
-    float l2 = 0.23;
-
-    float b = sqrt(x*x+y*y);
-    float a = sqrt(b*b+z*z);
-    float alpha = atan2(z, b);
-    float gamma = acos((l1*l1+l2*l2-a*a)/(2*l1*l2));
-    float beta = acos((l1*l1+a*a-l2*l2)/(2*l1*a));
-    float q1 = M_PI/2 - alpha - beta;
-    float q2 = M_PI - gamma;
-    float theta = M_PI/2 - q1;
-
-
-    float m0 = atan2(x, y);
-    float m1 = q1;
-    float m2 = q2-theta;
-
-    std::vector<float> result;
-    result.push_back(m0);
-    result.push_back(m1);
-    result.push_back(m2);
-    return result;
-}
-
 

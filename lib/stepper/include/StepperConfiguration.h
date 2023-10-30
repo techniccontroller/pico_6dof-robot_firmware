@@ -25,17 +25,6 @@ public:
     float stepsToAngleDeg(int steps);
     float stepsToAngleRad(int steps);
 
-    /**
-     * @brief Inverse kinematics for robot arm
-     * 
-     * @param x position of end effector in x direction (m)
-     * @param y position of end effector in y direction (m)
-     * @param z position of end effector in z direction (m)
-     * @return std::vector<float> 
-     */
-    std::vector<float> inverseKinematics(float x, float y, float z);
-
-
 private:
 
     void setupMicrosteppingPins();

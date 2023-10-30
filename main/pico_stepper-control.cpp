@@ -109,12 +109,14 @@ int main()
         if((current_time - last_print_time > 500))
         {
             std::vector<float> config = robot.getConfiguration();
-            printf("Current config [deg]: [%6.1f] [%6.1f] [%6.1f] [%6.1f] [%6.1f]\n\r", config[0], config[1], config[2], config[3], config[4]);
+            printf("Current config [deg]: [%6.2f] [%6.2f] [%6.2f] [%6.2f] [%6.2f]\n\r", config[0], config[1], config[2], config[3], config[4]);
+            std::vector<float> pose = robot.getPose();
+            printf("Current pose [m]: [%6.3f] [%6.3f] [%6.3f]\n\r", pose[0], pose[1], pose[2]);
             robot.printEncoderPositions();
             last_print_time = current_time;
         }
 
-        if((current_time - last_step_time > 50))
+        if((current_time - last_step_time > 10))
         {
             robot.step();
             last_step_time = current_time;

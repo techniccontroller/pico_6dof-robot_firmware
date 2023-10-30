@@ -31,9 +31,9 @@ def thread_square(name):
     y_range = [0.2, 0.2, 0.2, 0.3, 0.3, 0.2,  0.2,  0.2,  0.3,  0.3,  0.2, 0.2]
     z_range = [0.1, 0.1, 0.2, 0.2, 0.1, 0.1,  0.1,  0.2,  0.2,  0.1,  0.1, 0.1]
 
-    x_range = [   0.0,    0.1,    0.0,   -0.1,    0.0]
-    y_range = [   0.2,    0.2,    0.2,    0.2,    0.2]
-    z_range = [-0.117, -0.117, -0.117, -0.117, -0.117]
+    #x_range = [   0.0,    0.1,    0.0,   -0.1,    0.0]
+    #y_range = [   0.2,    0.2,    0.2,    0.2,    0.2]
+    #z_range = [-0.117, -0.117, -0.117, -0.117, -0.117]
 
     x = x_range[0]
     y = y_range[0]
@@ -135,7 +135,7 @@ if __name__ == "__main__":
 
     all_txts_manual = []
     for mo in joint_names:
-        all_txts_manual.append(sg.Input(default_text="90", size=4))
+        all_txts_manual.append(sg.Input(default_text="30", size=4))
     for mo in joint_names:
         all_txts_manual.append(sg.Input(default_text="0", size=4))
 
@@ -200,7 +200,8 @@ if __name__ == "__main__":
             x.start()
         
         elif event == "SEND":
-            ser.write(("COORD(" + txt_coord.get() + ")\n").encode())
+            #ser.write(("COORD(" + txt_coord.get() + ")\n").encode())
+            ser.write((txt_coord.get() + "\n").encode())
         
         elif event.endswith("press"):
             i = 0

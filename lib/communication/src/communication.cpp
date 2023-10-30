@@ -189,6 +189,15 @@ void Communication::process_cmd(char *cmd)
         m_robot->moveToPose(pose);
         comm_func_write("COORD is set\n");
     }
+    else if (starts_with("PID_J5", cmd))
+    {
+        std::vector<float> values = extract_cmd_values(cmd);
+
+        m_robot->setPID(Joint::J5, values[0], values[1], values[2]);
+        char str_buffer[20];
+        sprintf(str_buffer, "J5 PID set: %f, %f, %f", values[0], values[1], values[2]);
+        comm_func_write(str_buffer);
+    }
 }
 
 void Communication::check_incoming_cmds()

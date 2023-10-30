@@ -84,6 +84,9 @@ public:
     void setJ4PositionVelocity(float position, float velocity);
     void setJ5PositionVelocity(float position, float velocity);
 
+    void setJ4PID(float p, float i, float d);
+    void setJ5PID(float p, float i, float d);
+
 private:
     AccelStepper *m_stepper1;
     AccelStepper *m_stepper2;
@@ -102,6 +105,13 @@ private:
     JointControlState m_state_j3 = JointControlState::DISABLED;
     JointControlState m_state_j4 = JointControlState::DISABLED;
     JointControlState m_state_j5 = JointControlState::DISABLED;
+
+    float pid_p_j4 = 25;
+    float pid_i_j4 = 0;
+    float pid_d_j4 = 2;
+    float pid_p_j5 = 25;
+    float pid_i_j5 = 0;
+    float pid_d_j5 = 2;
 
     StepperConfiguration *m_stepperConfiguration; /**< Stepper configuration. */
 

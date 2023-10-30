@@ -151,6 +151,18 @@ void Robot::printEncoderPositions()
     printf("Encoder status: %d, %d, %d, %d\n", m_encoderJ2.getStatus(), m_encoderJ3.getStatus(), m_encoderJ4.getStatus(), m_encoderJ5.getStatus());
 }
 
+void Robot::setPID(int joint, float p, float i, float d)
+{
+    switch(joint){
+        case Joint::J4:
+        m_jointController.setJ4PID(p, i, d);
+        break;
+        case Joint::J5:
+        m_jointController.setJ5PID(p, i, d);
+        break;
+    }
+}
+
 /**
  * @brief Move Robot to a specific configuration
  * 
@@ -161,6 +173,14 @@ void Robot::moveToConfiguration(std::vector<float> config, float velocity){
     m_jointController.moveToConfiguration(config, velocity);
 }
 
+/**
+ * @brief Calculate the configuration of the robot from a given pose
+ * 
+ * @param x     X position of the robot [m]
+ * @param y     Y position of the robot [m]
+ * @param z     Z position of the robot [m]
+ * @return std::vector<float>   Configuration of the robot [deg]
+ */
 std::vector<float> Robot::inverseKinematics(float x, float y, float z){
     float l1 = 0.21;
     float l2 = 0.23;
@@ -180,20 +200,26 @@ std::vector<float> Robot::inverseKinematics(float x, float y, float z){
     float m2 = q2-theta;
 
     std::vector<float> result;
-    result.push_back(m0);
-    result.push_back(m1);
-    result.push_back(m2);
+    result.push_back(m0 * 180.0 / M_PI);
+    result.push_back(m1 * 180.0 / M_PI);
+    result.push_back(-m2 * 180.0 / M_PI);
     return result;
 }
 
+/**
+ * @brief Calculate the pose of the robot from a given configuration
+ * 
+ * @param config    Configuration of the robot [deg]
+ * @return std::vector<float>   Pose of the robot [m]
+ */
 std::vector<float> Robot::forwardKinematics(std::vector<float> config)
 {
     float l1 = 0.21;
     float l2 = 0.23;
 
-    float m0 = config[0];
-    float m1 = config[1];
-    float m2 = config[2];
+    float m0 = config[0] / 180.0 * M_PI;
+    float m1 = config[1] / 180.0 * M_PI;
+    float m2 = -config[2] / 180.0 * M_PI;
     float q0 = m0;
     float q1 = m1;
     float theta = M_PI/2 - q1;

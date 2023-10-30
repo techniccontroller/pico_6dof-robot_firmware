@@ -43,6 +43,8 @@ public:
 
     void printEncoderPositions();
 
+    void setPID(int joint, float p, float i, float d);
+
 private:
     AS5600 m_encoderJ2; /**< Encoder J2. */
     AS5600 m_encoderJ3; /**< Encoder J3. */
