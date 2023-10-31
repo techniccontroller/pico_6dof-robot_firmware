@@ -1,5 +1,5 @@
 /**
- * @file Controller.h
+ * @file MotorController.h
  * @author Edgar W (mail@techniccontroller.com)
  * @brief 
  * @version 0.1
@@ -15,9 +15,11 @@
 #include "AccelStepper.h"
 #include "DCMotor.h"
 #include "AS5600.h"
+#include <defines_constants.h>
+#include "StepperConfiguration.h"
 
 
-class Controller {
+class MotorController {
 
     // enum for setpoint type (velocity, position)
     enum SetpointType {
@@ -39,7 +41,7 @@ class Controller {
     };
 
 public:
-    Controller();
+    MotorController(StepperConfiguration *stepperConfiguration);
 
     void addM1(AccelStepper *stepper1 = NULL, AS5600 *encoder1 = NULL);
     void addM2(AccelStepper *stepper2 = NULL, AS5600 *encoder2 = NULL);
@@ -47,6 +49,7 @@ public:
     void addM4(DCMotor *motor4 = NULL);
     void addM5(DCMotor *motor5 = NULL);
 
+    void stepStepper(AccelStepper * stepper, AS5600 * encoder, MotorControlState * state, float * setpoint_pos, float * setpoint_vel);
     void step();
     void run();
 
@@ -103,6 +106,7 @@ private:
     MotorControlState g_m4_state = MotorControlState::DISABLED;
     MotorControlState g_m5_state = MotorControlState::DISABLED;
 
+    StepperConfiguration *m_stepperConfiguration; /**< Stepper configuration. */
 
     AccelStepper *g_stepper1;
     AccelStepper *g_stepper2;

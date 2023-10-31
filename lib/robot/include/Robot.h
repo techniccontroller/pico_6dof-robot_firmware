@@ -7,7 +7,7 @@
 #include <AccelStepper.h>
 #include <StepperConfiguration.h>
 #include <DCMotor.h>
-#include <Controller.h>
+#include <MotorController.h>
 #include <JointController.h>
 
 #pragma once
@@ -15,8 +15,22 @@
 class Robot
 {
 
+
+    
+
 public:
+
+    enum RobotMode
+    {
+        JOINTCONTROL,
+        MOTORCONTROL,
+        AUTO
+    };
+
     Robot(void);
+
+    void setMode(RobotMode mode);
+    RobotMode getMode();
 
     void step();
     void run();
@@ -46,6 +60,7 @@ public:
     void setPID(int joint, float p, float i, float d);
 
 private:
+    RobotMode mode = RobotMode::AUTO;     /**< Current mode of the robot. */
     AS5600 m_encoderJ2; /**< Encoder J2. */
     AS5600 m_encoderJ3; /**< Encoder J3. */
     AS5600 m_encoderJ4; /**< Encoder J4. */
@@ -59,7 +74,7 @@ private:
     DCMotor m_motorM5; /**< Motor M5. */
 
     JointController m_jointController; /**< Joint controller. */
-    Controller m_controller;           /**< Controller. */
+    MotorController m_motorController;           /**< MotorController. */
 
     StepperConfiguration m_stepperConfiguration; /**< Stepper configuration. */
 

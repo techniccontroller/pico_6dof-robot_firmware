@@ -15,7 +15,8 @@ Robot::Robot(void):
     m_stepperConfiguration(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, 4, 60.0/16.0 * 60.0/16.0),
     m_motorM4(MOTOR4_ENABLE_PIN, MOTOR4_IN1_PIN, MOTOR4_IN2_PIN),
     m_motorM5(MOTOR5_ENABLE_PIN, MOTOR5_IN1_PIN, MOTOR5_IN2_PIN),
-    m_jointController(&m_stepperConfiguration)
+    m_jointController(&m_stepperConfiguration),
+    m_motorController(&m_stepperConfiguration)
 {
     m_stepperM1.setMaxSpeed(2000);
     m_stepperM1.setAcceleration(500);
@@ -26,11 +27,11 @@ Robot::Robot(void):
 
     loadAllSensorCalibrationData();
 
-    m_controller.addM1(&m_stepperM1, NULL);
-    m_controller.addM2(&m_stepperM2, &m_encoderJ2);
-    m_controller.addM3(&m_stepperM3, &m_encoderJ3);
-    m_controller.addM4(&m_motorM4);
-    m_controller.addM5(&m_motorM5);
+    m_motorController.addM1(&m_stepperM1, NULL);
+    m_motorController.addM2(&m_stepperM2, &m_encoderJ2);
+    m_motorController.addM3(&m_stepperM3, &m_encoderJ3);
+    m_motorController.addM4(&m_motorM4);
+    m_motorController.addM5(&m_motorM5);
 
     m_jointController.addM1(&m_stepperM1);
     m_jointController.addM2(&m_stepperM2);
@@ -47,16 +48,50 @@ Robot::Robot(void):
     initEEPROM();
 }
 
+void Robot::setMode(RobotMode mode)
+{
+    this->mode = mode;
+}
+
+Robot::RobotMode Robot::getMode()
+{
+    return mode;
+}
+
 void Robot::step()
 {
-    //m_controller.step();
-    m_jointController.step();
+    switch (mode)
+    {
+    case RobotMode::AUTO:
+    case RobotMode::JOINTCONTROL:
+        m_jointController.step();
+        break;
+    
+    case RobotMode::MOTORCONTROL:
+        m_motorController.step();
+        break;
+    
+    default:
+        break;
+    }
 }
 
 void Robot::run()
 {
-    //m_controller.run();
-    m_jointController.run();
+    switch (mode)
+    {
+    case RobotMode::AUTO:
+    case RobotMode::JOINTCONTROL:
+        m_jointController.run();
+        break;
+    
+    case RobotMode::MOTORCONTROL:
+        m_motorController.run();
+        break;
+    
+    default:
+        break;
+    }
 }
 
 void Robot::loadAllSensorCalibrationData()
@@ -283,27 +318,38 @@ void Robot::zeroJoint(int joint){
     }
 }
 
-
+/**
+ * @brief 
+ * 
+ * @param motor 
+ * @param velocity 
+ */
 void Robot::setMotorVelocity(int motor, float velocity){
     switch(motor){
         case Motor::M1:
-        m_controller.setM1Velocity(velocity);
+        m_motorController.setM1Velocity(velocity);
         break;
         case Motor::M2:
-        m_controller.setM2Velocity(velocity);
+        m_motorController.setM2Velocity(velocity);
         break;
         case Motor::M3:
-        m_controller.setM3Velocity(velocity);
+        m_motorController.setM3Velocity(velocity);
         break;
         case Motor::M4:
-        m_controller.setM4Velocity(velocity);
+        m_motorController.setM4Velocity(velocity);
         break;
         case Motor::M5:
-        m_controller.setM5Velocity(velocity);
+        m_motorController.setM5Velocity(velocity);
         break;
     }
 }
 
+/**
+ * @brief Set the velocity of a joint
+ * 
+ * @param joint     Joint to set the velocity of
+ * @param velocity  Velocity to set [deg/s]
+ */
 void Robot::setJointVelocity(int joint, float velocity){
     switch(joint){
         case Joint::J1:

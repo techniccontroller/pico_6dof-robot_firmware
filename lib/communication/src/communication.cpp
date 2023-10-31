@@ -125,31 +125,55 @@ std::vector<float> Communication::extract_cmd_values(const char *cmd)
 
 void Communication::process_cmd(char *cmd)
 {
-    if (_manual_drive)
+    if (starts_with("CMD_", cmd))
     {
         uint8_t joint = extract_related_joint(cmd);
+        uint8_t motor = extract_related_motor(cmd);
 
-        if (contains("_INIT", cmd))
-        {
-            m_robot->initJoint(joint);
-            char str_buffer[40];
-            sprintf(str_buffer, "Init Joint J%d\n", joint);
-            comm_func_write(str_buffer);
-        }
-        else if (contains("_ZERO", cmd))
-        {
-            m_robot->zeroJoint(joint);
-            char str_buffer[40];
-            sprintf(str_buffer, "Zero Joint J%d\n", joint);
-            comm_func_write(str_buffer);
-        }
-        else if (contains("_SET", cmd))
-        {
-            m_robot->setJointPosition(joint, extract_cmd_values(cmd)[0]);
-        }
-        else
-        {
-            long speed = 0;
+        if(joint != Joint::JNONE){
+            if (contains("_INIT", cmd))
+            {
+                m_robot->initJoint(joint);
+                char str_buffer[40];
+                sprintf(str_buffer, "Init Joint J%d\n", joint);
+                comm_func_write(str_buffer);
+            }
+            else if (contains("_ZERO", cmd))
+            {
+                m_robot->zeroJoint(joint);
+                char str_buffer[40];
+                sprintf(str_buffer, "Zero Joint J%d\n", joint);
+                comm_func_write(str_buffer);
+            }
+            else if (contains("_SET", cmd))
+            {
+                m_robot->setJointPosition(joint, extract_cmd_values(cmd)[0]);
+            }
+            else
+            {
+                float speed = 0;
+                if (contains("END", cmd))
+                {
+                    speed = 0;
+                }
+                if (contains("BACKWARD_START", cmd))
+                {
+                    speed = abs(extract_cmd_values(cmd)[0]);
+                }
+                if (contains("FORWARD_START", cmd))
+                {
+                    speed = abs(extract_cmd_values(cmd)[0]);
+                    speed *= -1;
+                }
+
+                m_robot->setJointVelocity(joint, speed);
+                
+                char str_buffer[20];
+                sprintf(str_buffer, "Set Velocity, joint: %d, spd: %d", joint, speed);
+                comm_func_write(str_buffer);
+            }
+        } else if(motor != Motor::MNONE){
+            float speed = 0;
             if (contains("END", cmd))
             {
                 speed = 0;
@@ -164,23 +188,28 @@ void Communication::process_cmd(char *cmd)
                 speed *= -1;
             }
 
-            m_robot->setJointVelocity(joint, speed);
+            m_robot->setMotorVelocity(motor, speed);
             
             char str_buffer[20];
-            sprintf(str_buffer, "Set Velocity, joint: %d, spd: %d", joint, speed);
+            sprintf(str_buffer, "Set Velocity, motor: %d, spd: %f", motor, speed);
             comm_func_write(str_buffer);
         }
+        
     }
-
-    if (starts_with("ENABLE_MANUAL", cmd))
+    else if(starts_with("SET_MODE_AUTO", cmd))
     {
-        comm_func_write("enable manual drive\n");
-        _manual_drive = true;
+        comm_func_write("set mode auto\n");
+        m_robot->setMode(Robot::RobotMode::AUTO);
     }
-    else if (starts_with("DISABLE_MANUAL", cmd))
+    else if(starts_with("SET_MODE_MOTOR", cmd))
     {
-        comm_func_write("disable manual drive\n");
-        _manual_drive = false;
+        comm_func_write("set mode motor\n");
+        m_robot->setMode(Robot::RobotMode::MOTORCONTROL);
+    }
+    else if(starts_with("SET_MODE_JOINT", cmd))
+    {
+        comm_func_write("set mode joint\n");
+        m_robot->setMode(Robot::RobotMode::JOINTCONTROL);
     }
     else if (starts_with("COORD", cmd))
     {
@@ -188,6 +217,15 @@ void Communication::process_cmd(char *cmd)
 
         m_robot->moveToPose(pose);
         comm_func_write("COORD is set\n");
+    }
+    else if (starts_with("PID_J4", cmd))
+    {
+        std::vector<float> values = extract_cmd_values(cmd);
+
+        m_robot->setPID(Joint::J4, values[0], values[1], values[2]);
+        char str_buffer[20];
+        sprintf(str_buffer, "J4 PID set: %f, %f, %f", values[0], values[1], values[2]);
+        comm_func_write(str_buffer);
     }
     else if (starts_with("PID_J5", cmd))
     {

@@ -28,12 +28,12 @@ class DCMotor {
     uint8_t m_enable_pin;
     uint8_t m_dir1_pin;
     uint8_t m_dir2_pin;
-    long local_current_pos;
-    int local_direction;
+    long local_current_pos = 0;
+    int local_direction = 0;
 
-    float m_speed;
-    volatile long * m_current_pos;
-    volatile int * m_direction;
-    long m_target_pos;
+    float m_speed = 0.0f;
+    volatile long * m_current_pos = 0;
+    volatile int * m_direction = 0;
+    long m_target_pos = 0;
 
 };
