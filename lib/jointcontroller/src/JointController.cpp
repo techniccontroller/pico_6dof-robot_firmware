@@ -147,6 +147,12 @@ std::vector<float> JointController::getConfiguration()
     return config;
 }
 
+/**
+ * @brief Execute on control step of the joint controller 
+ * 
+ * Should be called with the control frequency (e.g. 100Hz)
+ * 
+ */
 void JointController::step()
 {
 
@@ -197,7 +203,7 @@ void JointController::step()
             speed = std::clamp(speed, -INIT_VEL_DCMOTOR, INIT_VEL_DCMOTOR);
             speed_m4_j4 = -speed;
             speed_m5_j4 = -speed;
-            printf("J4 - angle: %f, speed: %f\n\r", angle, speed);
+            //printf("J4 - angle: %f, speed: %f\n\r", angle, speed);
         }
         else {
             m_state_j4 = JointControlState::DISABLED;
@@ -243,7 +249,7 @@ void JointController::step()
             speed = std::clamp(speed, -INIT_VEL_DCMOTOR, INIT_VEL_DCMOTOR);
             speed_m4_j5 = -speed;
             speed_m5_j5 = speed;
-            printf("J5 - angle: %f, speed: %f\n\r", angle, speed);
+            //printf("J5 - angle: %f, speed: %f\n\r", angle, speed);
         }
         else {
             m_state_j5 = JointControlState::DISABLED;
@@ -260,6 +266,12 @@ void JointController::step()
 
 }
 
+/**
+ * @brief This function triggers the step signals for the stepper motors
+ * 
+ * It need to be called as often as possible. 
+ * 
+ */
 void JointController::run()
 {
     switch (m_state_j1)
@@ -318,6 +330,15 @@ void JointController::run()
 
     m_motor4->runSpeed();
     m_motor5->runSpeed();
+}
+
+void JointController::reset()
+{
+    m_state_j1 = JointControlState::DISABLED;
+    m_state_j2 = JointControlState::DISABLED;
+    m_state_j3 = JointControlState::DISABLED;
+    m_state_j4 = JointControlState::DISABLED;
+    m_state_j5 = JointControlState::DISABLED;
 }
 
 void JointController::initializeJ1()
@@ -573,6 +594,13 @@ void JointController::setJ5PositionVelocity(float position, float velocity)
     printf("J5 - setpoint pos: %f, vel: %f\n\r", m_setpoint_pos_j5, m_setpoint_vel_j5);
 }
 
+/**
+ * @brief Set the J4 PID parameters
+ * 
+ * @param p     Proportional gain
+ * @param i     Integral gain
+ * @param d     Derivative gain
+ */
 void JointController::setJ4PID(float p, float i, float d)
 {
     pid_p_j4 = p;
@@ -580,6 +608,13 @@ void JointController::setJ4PID(float p, float i, float d)
     pid_d_j4 = d;
 }
 
+/**
+ * @brief Set the J5 PID parameters
+ * 
+ * @param p     Proportional gain
+ * @param i     Integral gain
+ * @param d     Derivative gain
+ */
 void JointController::setJ5PID(float p, float i, float d)
 {
     pid_p_j5 = p;

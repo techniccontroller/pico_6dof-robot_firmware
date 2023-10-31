@@ -52,6 +52,7 @@ public:
     void stepStepper(AccelStepper * stepper, AS5600 * encoder, MotorControlState * state, float * setpoint_pos, float * setpoint_vel);
     void step();
     void run();
+    void reset();
 
     void initializeM1();
     void initializeM2();

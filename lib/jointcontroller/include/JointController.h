@@ -53,6 +53,7 @@ public:
 
     void step();
     void run();
+    void reset();
 
     void initializeJ1();
     void initializeJ2();

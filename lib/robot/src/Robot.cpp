@@ -51,6 +51,8 @@ Robot::Robot(void):
 void Robot::setMode(RobotMode mode)
 {
     this->mode = mode;
+    m_jointController.reset();
+    m_motorController.reset();
 }
 
 Robot::RobotMode Robot::getMode()

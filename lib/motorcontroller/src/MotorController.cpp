@@ -269,6 +269,15 @@ void MotorController::run()
 
 }
 
+void MotorController::reset()
+{
+    g_m1_state = MotorControlState::DISABLED;
+    g_m2_state = MotorControlState::DISABLED;
+    g_m3_state = MotorControlState::DISABLED;
+    g_m4_state = MotorControlState::DISABLED;
+    g_m5_state = MotorControlState::DISABLED;
+}
+
 void MotorController::initializeM1()
 {
     g_m1_state = MotorControlState::INITIALIZATION;
