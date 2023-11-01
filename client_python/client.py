@@ -133,7 +133,7 @@ def create_btns_motor(names):
 def create_txts_joint(names):    
     all_txts_manual = []
     for mo in names:
-        all_txts_manual.append(sg.Input(default_text="30", size=4))
+        all_txts_manual.append(sg.Input(default_text="10", size=4))
     for mo in names:
         all_txts_manual.append(sg.Input(default_text="0", size=4))
     return all_txts_manual
@@ -141,7 +141,7 @@ def create_txts_joint(names):
 def create_txts_motor(names):    
     all_txts_manual = []
     for mo in names:
-        all_txts_manual.append(sg.Input(default_text="30", size=4))
+        all_txts_manual.append(sg.Input(default_text="10", size=4))
     return all_txts_manual
 
 def create_btn_layout_joint(names, btns, txts):
