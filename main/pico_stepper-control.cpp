@@ -106,7 +106,7 @@ int main()
 
         // measure and print config every 500ms
         uint32_t current_time = time_us_64() / 1000;
-        if((current_time - last_print_time > 500))
+        if((current_time - last_print_time > 2000))
         {
             std::vector<float> config = robot.getConfiguration();
             printf("Current config [deg]: [%6.2f] [%6.2f] [%6.2f] [%6.2f] [%6.2f]\n\r", config[0], config[1], config[2], config[3], config[4]);

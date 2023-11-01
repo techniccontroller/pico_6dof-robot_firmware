@@ -169,7 +169,7 @@ void Communication::process_cmd(char *cmd)
                 m_robot->setJointVelocity(joint, speed);
                 
                 char str_buffer[20];
-                sprintf(str_buffer, "Set Velocity, joint: %d, spd: %d", joint, speed);
+                sprintf(str_buffer, "Set Velocity, joint: %d, spd: %f", joint, speed);
                 comm_func_write(str_buffer);
             }
         } else if(motor != Motor::MNONE){
@@ -235,6 +235,16 @@ void Communication::process_cmd(char *cmd)
         char str_buffer[20];
         sprintf(str_buffer, "J5 PID set: %f, %f, %f", values[0], values[1], values[2]);
         comm_func_write(str_buffer);
+    }
+    else if(starts_with("SAVE_ZEROS", cmd))
+    {
+        m_robot->writeAllSensorCalibrationData();
+        comm_func_write("Zeros saved\n");
+    }
+    else if(starts_with("LOAD_ZEROS", cmd))
+    {
+        m_robot->loadAllSensorCalibrationData();
+        comm_func_write("Zeros loaded\n");
     }
 }
 

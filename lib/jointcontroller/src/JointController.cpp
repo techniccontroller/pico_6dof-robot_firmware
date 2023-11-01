@@ -159,14 +159,21 @@ std::vector<float> JointController::getConfiguration()
 void JointController::checkJointLimitsJ2J3(){
     float angle_J2 = m_encoder2->readAngleDeg();
     float angle_J3 = m_encoder3->readAngleDeg();
-    float angleDiff = (360 - angle_J2) - angle_J3;
-    if(abs(angleDiff) > 100 || abs(angleDiff) < 5){
-        // warning - robot reached a limit between J2 and J3
-        m_state_j2 = JointControlState::DISABLED;
-        m_state_j3 = JointControlState::DISABLED;
+    float inv_angle_J2 = (360 - angle_J2);
+    if(angle_J2 > 180){
+        angle_J2 = angle_J2 - 360;
     }
     if(angle_J3 > 180){
         angle_J3 = angle_J3 - 360;
+    }
+    if(inv_angle_J2 > 180){
+        inv_angle_J2 = inv_angle_J2 - 360;
+    }
+    float angleDiff = inv_angle_J2 - angle_J3;
+    if(abs(angleDiff) > LIMIT_J4_J5_DIFF_MAX || abs(angleDiff) < LIMIT_J4_J5_DIFF_MIN){
+        // warning - robot reached a limit between J2 and J3
+        m_state_j2 = JointControlState::DISABLED;
+        m_state_j3 = JointControlState::DISABLED;
     }
     if(angle_J3 < LIMIT_J3_MIN){
         // warning - robot reached a the limit of J3
@@ -184,12 +191,15 @@ void JointController::checkJointLimitsJ2J3(){
  * @param motor     The DC motor of the joint to control
  * @param encoder   The encoder to read the current position from
  * @param state     The current state of the joint to control
+ * @param pid_p     The proportional gain of the PID controller
+ * @param pid_i     The integral gain of the PID controller
+ * @param pid_d     The derivative gain of the PID controller
  * @param setpoint_pos  The current position setpoint of the joint to control [deg]
  * @param setpoint_vel  The current velocity setpoint of the joint to control [PWM]
  * @param speed_m4  The output speed of the motor4 [PWM] (as return value)
  * @param speed_m5  The output speed of the motor5 [PWM] (as return value)
  */
-void JointController::stepDCMotor(DCMotor * motor, AS5600 * encoder, JointControlState * state, float * setpoint_pos, float * setpoint_vel, float * speed_m4, float * speed_m5){
+void JointController::stepDCMotor(DCMotor * motor, AS5600 * encoder, JointControlState * state, float pid_p, float pid_i, float pid_d, float * setpoint_pos, float * setpoint_vel, float * speed_m4, float * speed_m5){
     
     float angle = 0;
     float speed = 0;
@@ -216,9 +226,9 @@ void JointController::stepDCMotor(DCMotor * motor, AS5600 * encoder, JointContro
         if(encoder != NULL){
             // PID controller
             float diff = *setpoint_pos - angle;
-            float p = pid_p_j4j5;
-            float i = pid_i_j4j5;
-            float d = pid_d_j4j5;
+            float p = pid_p;
+            float i = pid_i;
+            float d = pid_d;
             float dt = 0.01;
             static float integral = 0;
             static float derivative = 0;
@@ -262,6 +272,24 @@ bool JointController::isJointLimitReachedJ4(float speed_m4_j4){
     return false;
 }
 
+bool JointController::isAllEncoderStatusValid(){
+    if(m_encoder1 != NULL && m_encoder1->getStatus() != 32){
+        return false;
+    }
+    if(m_encoder2 != NULL && m_encoder2->getStatus() != 32){
+        return false;
+    }
+    if(m_encoder3 != NULL && m_encoder3->getStatus() != 32){
+        return false;
+    }
+    if(m_encoder4 != NULL && m_encoder4->getStatus() != 32){
+        return false;
+    }
+    if(m_encoder5 != NULL && m_encoder5->getStatus() != 32){
+        return false;
+    }
+    return true;
+}
 /**
  * @brief Execute on control step of the joint controller 
  * 
@@ -270,7 +298,15 @@ bool JointController::isJointLimitReachedJ4(float speed_m4_j4){
  */
 void JointController::step()
 {
-    checkJointLimitsJ2J3();
+    bool encodersValid = isAllEncoderStatusValid();
+    if(!encodersValid){
+        m_state_j1 = JointControlState::DISABLED;
+        m_state_j2 = JointControlState::DISABLED;
+        m_state_j3 = JointControlState::DISABLED;
+        m_state_j4 = JointControlState::DISABLED;
+        m_state_j5 = JointControlState::DISABLED;
+    }
+    if(encodersValid) checkJointLimitsJ2J3();
     stepStepper(m_stepper1, m_encoder1, &m_state_j1, &m_setpoint_pos_j1, &m_setpoint_vel_j1);
     stepStepper(m_stepper2, m_encoder2, &m_state_j2, &m_setpoint_pos_j2, &m_setpoint_vel_j2);
     stepStepper(m_stepper3, m_encoder3, &m_state_j3, &m_setpoint_pos_j3, &m_setpoint_vel_j3);
@@ -280,12 +316,12 @@ void JointController::step()
     float speed_m5_j4 = 0;
     float speed_m5_j5 = 0;
 
-    stepDCMotor(m_motor4, m_encoder4, &m_state_j4, &m_setpoint_pos_j4, &m_setpoint_vel_j4, &speed_m4_j4, &speed_m5_j4);
-    if(isJointLimitReachedJ4(speed_m4_j4)){
+    stepDCMotor(m_motor4, m_encoder4, &m_state_j4, pid_p_j4, pid_i_j4, pid_d_j4, &m_setpoint_pos_j4, &m_setpoint_vel_j4, &speed_m4_j4, &speed_m5_j4);
+    if(encodersValid && isJointLimitReachedJ4(speed_m4_j4)){
         speed_m4_j4 = 0;
         speed_m5_j4 = 0;
     }
-    stepDCMotor(m_motor5, m_encoder5, &m_state_j5, &m_setpoint_pos_j5, &m_setpoint_vel_j5, &speed_m4_j5, &speed_m5_j5);
+    stepDCMotor(m_motor5, m_encoder5, &m_state_j5, pid_p_j5, pid_i_j5, pid_d_j5, &m_setpoint_pos_j5, &m_setpoint_vel_j5, &speed_m4_j5, &speed_m5_j5);
     m_motor4->setSpeed(speed_m4_j4 + speed_m4_j5);
     m_motor5->setSpeed(speed_m5_j4 - speed_m5_j5);
 }
@@ -641,9 +677,9 @@ void JointController::setJ4PID(float p, float i, float d)
  */
 void JointController::setJ5PID(float p, float i, float d)
 {
-    pid_p_j4j5 = p;
-    pid_i_j4j5 = i;
-    pid_d_j4j5 = d;
+    pid_p_j5 = p;
+    pid_i_j5 = i;
+    pid_d_j5 = d;
 }
 
 /**

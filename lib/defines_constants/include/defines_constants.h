@@ -67,12 +67,14 @@
 #define INIT_VEL_STEPPER 3.2f       // 100 steps/s = 3.2 deg/s
 #define INIT_VEL_DCMOTOR 50.0f      // PWM
 
-#define LIMIT_J2_MIN 75.0f
-#define LIMIT_J2_MAX 227.0f
+#define LIMIT_J2_MIN -43.0f
+#define LIMIT_J2_MAX 99.0f
 #define LIMIT_J3_MIN -120.0f
 #define LIMIT_J3_MAX 10.0f
 #define LIMIT_J4_MIN -160.0f
 #define LIMIT_J4_MAX 60.0f
+#define LIMIT_J4_J5_DIFF_MIN 8.0f
+#define LIMIT_J4_J5_DIFF_MAX 120.0f
 
 /**
  * @brief Enum for the different motors

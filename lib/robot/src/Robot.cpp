@@ -111,10 +111,12 @@ void Robot::loadSensorCalibrationData(AS5600 *encoder, int addr)
     if(zero >= AS5601_ANGLE_MAX)
     {
         encoder->setZero();
+        printf("Set current pos as zero: %d\n", encoder->getZero());
     }
     else
     {
         encoder->setZero(zero);
+        printf("Loaded zero: %d\n", zero);
     }
 }
 
@@ -128,7 +130,9 @@ void Robot::writeAllSensorCalibrationData()
 
 void Robot::writeSensorCalibrationData(AS5600 *encoder, int addr)
 {
-    EEPROM.put(addr, encoder->getZero());
+    int zero = encoder->getZero();
+    EEPROM.put(addr, zero);
+    printf("Wrote zero: %d\n", zero);
 }
 
 void Robot::saveEEPROMDataPersistent()
@@ -183,8 +187,8 @@ float Robot::getJointPosition(int joint)
 
 void Robot::printEncoderPositions()
 {
-    printf("Encoder positions: %f, %f, %f, %f\n", m_encoderJ2.getCorrectedAngleDeg(), m_encoderJ3.getCorrectedAngleDeg(), m_encoderJ4.getCorrectedAngleDeg(), m_encoderJ5.getCorrectedAngleDeg());
-    printf("Encoder positions(raw): %d, %d, %d, %d\n", m_encoderJ2.readAngle(), m_encoderJ3.readAngle(), m_encoderJ4.readAngle(), m_encoderJ5.readAngle());
+    printf("Encoder positions: %f, %f, %f, %f\n\r", m_encoderJ2.getCorrectedAngleDeg(), m_encoderJ3.getCorrectedAngleDeg(), m_encoderJ4.getCorrectedAngleDeg(), m_encoderJ5.getCorrectedAngleDeg());
+    printf("Encoder positions(raw): %f, %f, %f, %f\n\r", m_encoderJ2.readAngleDeg(), m_encoderJ3.readAngleDeg(), m_encoderJ4.readAngleDeg(), m_encoderJ5.readAngleDeg());
     printf("Encoder status: %d, %d, %d, %d\n", m_encoderJ2.getStatus(), m_encoderJ3.getStatus(), m_encoderJ4.getStatus(), m_encoderJ5.getStatus());
 }
 

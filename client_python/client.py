@@ -200,6 +200,8 @@ if __name__ == "__main__":
 
     txt_custom = sg.Input(default_text="0,0,0", size=20)
     btn_send_coord = sg.Button("SEND", size=7)
+    btn_save_zeros = sg.Button("SAVE ZEROS", size=15)
+    btn_load_zeros = sg.Button("LOAD ZEROS", size=15)
     
     layout = [  [sg.Text("Initialize all joints:")], 
                 [btn_init],
@@ -208,7 +210,9 @@ if __name__ == "__main__":
                 [button_layout_joints],
                 [button_layout_motors],
                 [txt_custom],
-                [btn_send_coord]
+                [btn_send_coord],
+                [btn_save_zeros],
+                [btn_load_zeros]
                 ]
 
     # create the window
@@ -252,6 +256,12 @@ if __name__ == "__main__":
             #ser.write(("COORD(" + txt_coord.get() + ")\n").encode())
             ser.write((txt_custom.get() + "\n").encode())
         
+        elif event == "SAVE ZEROS":
+            ser.write(("SAVE_ZEROS\n").encode())
+
+        elif event == "LOAD ZEROS":
+            ser.write(("LOAD_ZEROS\n").encode())
+        
         elif event.endswith("press"):
             i = 0
             for jo in joint_names:
@@ -273,21 +283,18 @@ if __name__ == "__main__":
         elif event[0] == "B" or event[0] == "F":
             send_end_cmd(dir)
         elif event == "AUTO":
-            ser.write("MODE_AUTO\n".encode())
             ser.write("SET_MODE_AUTO\n".encode())
             for col in button_layout_joints:
                 col.hide_row()
             for col in button_layout_motors:
                 col.hide_row()
         elif event == "JOINT":
-            ser.write("MODE_JOINT\n".encode())
             ser.write("SET_MODE_JOINT\n".encode())
             for col in button_layout_joints:
                 col.unhide_row()
             for col in button_layout_motors:
                 col.hide_row()
         elif event == "MOTOR":
-            ser.write("MODE_MOTOR\n".encode())
             ser.write("SET_MODE_MOTOR\n".encode())
             for col in button_layout_joints:
                 col.hide_row()
