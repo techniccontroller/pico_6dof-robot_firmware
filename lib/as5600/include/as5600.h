@@ -32,6 +32,7 @@ class AS5600 {
 public:
     AS5600(i2c_inst_t * i2c_port, uint8_t scl_pin, uint8_t sda_pin, uint8_t addr, uint8_t mux_channel, uint8_t mux_addr);
     int readAngle();
+    float readAngleDeg();
     int getCorrectedAngle();
     float getCorrectedAngleDeg();
     uint8_t getStatus();
