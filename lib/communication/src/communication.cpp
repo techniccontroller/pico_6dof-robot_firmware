@@ -134,16 +134,22 @@ void Communication::process_cmd(char *cmd)
             if (contains("_INIT", cmd))
             {
                 m_robot->initJoint(joint);
-                char str_buffer[40];
-                sprintf(str_buffer, "Init Joint J%d\n", joint);
-                comm_func_write(str_buffer);
+                if (DEBUG_IS_ENABLED)
+                {
+                    char str_buffer[40];
+                    sprintf(str_buffer, "Init Joint J%d\n", joint);
+                    comm_func_write(str_buffer);
+                }
             }
             else if (contains("_ZERO", cmd))
             {
                 m_robot->zeroJoint(joint);
-                char str_buffer[40];
-                sprintf(str_buffer, "Zero Joint J%d\n", joint);
-                comm_func_write(str_buffer);
+                if (DEBUG_IS_ENABLED)
+                {
+                    char str_buffer[40];
+                    sprintf(str_buffer, "Zero Joint J%d\n", joint);
+                    comm_func_write(str_buffer);
+                }
             }
             else if (contains("_SET", cmd))
             {
@@ -168,9 +174,12 @@ void Communication::process_cmd(char *cmd)
 
                 m_robot->setJointVelocity(joint, speed);
                 
-                char str_buffer[20];
-                sprintf(str_buffer, "Set Velocity, joint: %d, spd: %f", joint, speed);
-                comm_func_write(str_buffer);
+                if (DEBUG_IS_ENABLED)
+                {
+                    char str_buffer[20];
+                    sprintf(str_buffer, "Set Velocity, joint: %d, spd: %f\n", joint, speed);
+                    comm_func_write(str_buffer);
+                }
             }
         } else if(motor != Motor::MNONE){
             float speed = 0;
@@ -190,31 +199,33 @@ void Communication::process_cmd(char *cmd)
 
             m_robot->setMotorVelocity(motor, speed);
             
-            char str_buffer[20];
-            sprintf(str_buffer, "Set Velocity, motor: %d, spd: %f", motor, speed);
-            comm_func_write(str_buffer);
+            if (DEBUG_IS_ENABLED)
+            {
+                char str_buffer[20];
+                sprintf(str_buffer, "Set Velocity, motor: %d, spd: %f\n", motor, speed);
+                comm_func_write(str_buffer);
+            }
         }
         
     }
     else if(starts_with("SET_MODE_AUTO", cmd))
     {
-        comm_func_write("set mode auto\n");
         m_robot->setMode(Robot::RobotMode::AUTO);
+        comm_func_write("mode auto is set\n");
     }
     else if(starts_with("SET_MODE_MOTOR", cmd))
     {
-        comm_func_write("set mode motor\n");
         m_robot->setMode(Robot::RobotMode::MOTORCONTROL);
+        comm_func_write("mode motor is set\n");
     }
     else if(starts_with("SET_MODE_JOINT", cmd))
     {
-        comm_func_write("set mode joint\n");
         m_robot->setMode(Robot::RobotMode::JOINTCONTROL);
+        comm_func_write("mode joint is set\n");
     }
     else if (starts_with("COORD", cmd))
     {
         std::vector<float> pose = extract_cmd_values(cmd);
-
         m_robot->moveToPose(pose);
         comm_func_write("COORD is set\n");
     }
@@ -223,18 +234,24 @@ void Communication::process_cmd(char *cmd)
         std::vector<float> values = extract_cmd_values(cmd);
 
         m_robot->setPID(Joint::J4, values[0], values[1], values[2]);
-        char str_buffer[20];
-        sprintf(str_buffer, "J4 PID set: %f, %f, %f", values[0], values[1], values[2]);
-        comm_func_write(str_buffer);
+        if (DEBUG_IS_ENABLED)
+        {
+            char str_buffer[20];
+            sprintf(str_buffer, "J4 PID set: %f, %f, %f", values[0], values[1], values[2]);
+            comm_func_write(str_buffer);
+        }
     }
     else if (starts_with("PID_J5", cmd))
     {
         std::vector<float> values = extract_cmd_values(cmd);
 
         m_robot->setPID(Joint::J5, values[0], values[1], values[2]);
-        char str_buffer[20];
-        sprintf(str_buffer, "J5 PID set: %f, %f, %f", values[0], values[1], values[2]);
-        comm_func_write(str_buffer);
+        if (DEBUG_IS_ENABLED)
+        {
+            char str_buffer[20];
+            sprintf(str_buffer, "J5 PID set: %f, %f, %f", values[0], values[1], values[2]);
+            comm_func_write(str_buffer);
+        }
     }
     else if(starts_with("SAVE_ZEROS", cmd))
     {
