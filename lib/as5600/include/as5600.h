@@ -43,7 +43,7 @@ public:
 
 private:
 
-    void muxselect(uint8_t i);
+    int muxselect(uint8_t i);
     uint16_t readReg(int addr, bool wide, uint16_t mask);
     void printReg16(const char *formatStr, int addr, uint16_t mask);
     void printReg8(const char *formatStr, int addr, uint8_t mask);
@@ -53,6 +53,8 @@ private:
     int g_zero = 0;
     uint8_t g_mux_channel;
     uint8_t g_mux_addr;
+    absolute_time_t g_last_time = get_absolute_time();
+    uint8_t g_last_status = 0;
 };
 
 

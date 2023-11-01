@@ -51,7 +51,12 @@ float AS5600::getCorrectedAngleDeg() {
 }
 
 uint8_t AS5600::getStatus() {
-    return (uint8_t) readReg(AS560x_STATUS_REG, false, 0x38);
+    absolute_time_t current_time = get_absolute_time();
+    if(absolute_time_diff_us(g_last_time, current_time) > 500000){
+        g_last_time = current_time;
+        g_last_status = (uint8_t) readReg(AS560x_STATUS_REG, false, 0x38);
+    }
+    return g_last_status;
 }
 
 /**
@@ -59,30 +64,39 @@ uint8_t AS5600::getStatus() {
  * 
  * @param i Channel to select (0-7)
  */
-void AS5600::muxselect(uint8_t i) {
-  if (i > 7) return;
+int AS5600::muxselect(uint8_t i) {
+  if (i > 7) return -1;
   int value = 1 << i;
-  int ret = i2c_write_blocking(g_i2c_port, g_mux_addr, (uint8_t *) &value, 1, false);
+  absolute_time_t timeout = make_timeout_time_ms(100);
+  return i2c_write_blocking_until(g_i2c_port, g_mux_addr, (uint8_t *) &value, 1, false, timeout);
 }
 
 uint16_t AS5600::readReg(int addr, bool wide, uint16_t mask) {
 
-    muxselect(g_mux_channel);
+    int ret = muxselect(g_mux_channel);
 
-    uint16_t buf;
-    int result = i2c_write_timeout_us(g_i2c_port, g_addr, (uint8_t *) &addr, 1, true, I2C_TIMEOUT_US);
-    if (result <= 0) {
+    if(ret > 0){
+        uint16_t buf;
+        int result = i2c_write_timeout_us(g_i2c_port, g_addr, (uint8_t *) &addr, 1, true, I2C_TIMEOUT_US);
+        if (result <= 0) {
+            // error
+        }
+        result = i2c_read_timeout_us(g_i2c_port, g_addr, (uint8_t *) &buf, (wide ? 2 : 1), false, I2C_TIMEOUT_US);
+        if (result <= 0) {
+            // error
+        }
+        if (wide) {
+            return __bswap16(buf) & mask;
+        } else {
+            return buf & mask;
+        }
+    } 
+    else {
         // error
+        printf("Error: Muxselect failed\n\r");
+        return 0;
     }
-    result = i2c_read_timeout_us(g_i2c_port, g_addr, (uint8_t *) &buf, (wide ? 2 : 1), false, I2C_TIMEOUT_US);
-    if (result <= 0) {
-        // error
-    }
-    if (wide) {
-        return __bswap16(buf) & mask;
-    } else {
-        return buf & mask;
-    }
+    
 }
 
 void AS5600::printReg16(const char *formatStr, int addr, uint16_t mask) {
