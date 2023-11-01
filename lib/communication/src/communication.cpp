@@ -229,6 +229,12 @@ void Communication::process_cmd(char *cmd)
         m_robot->moveToPose(pose);
         comm_func_write("COORD is set\n");
     }
+    else if(starts_with("CONFIG", cmd))
+    {
+        std::vector<float> config = extract_cmd_values(cmd);
+        m_robot->moveToConfiguration(config);
+        comm_func_write("CONFIG is set\n");
+    }
     else if (starts_with("PID_J4", cmd))
     {
         std::vector<float> values = extract_cmd_values(cmd);

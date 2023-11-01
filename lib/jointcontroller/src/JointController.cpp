@@ -678,6 +678,9 @@ void JointController::setJ5PID(float p, float i, float d)
  */
 void JointController::moveToConfiguration(std::vector<float> config, float velocity)
 {
+    if(config.size() < 3){
+        return;
+    }
     std::vector<float> currentConfig = getConfiguration();
 
     long config_steps[3];
@@ -723,5 +726,11 @@ void JointController::moveToConfiguration(std::vector<float> config, float veloc
         float speed3_steps = stepsToGo3 / longestTime;
         float speed3 = m_stepperConfiguration->stepsToAngleDeg(speed3_steps);
         setJ3PositionVelocity(config[2], speed3);
+    }
+
+    // Check length of config vector if it also contains J4 and J5
+    if(config.size() > 3){
+        setJ4Position(config[3]);
+        setJ5Position(config[4]);
     }
 }
