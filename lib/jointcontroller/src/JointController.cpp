@@ -105,13 +105,11 @@ void JointController::stepStepper(AccelStepper * stepper, AS5600 * encoder, Join
             stepper->setCurrentPosition(0);
             *setpoint_pos = 0;
             *setpoint_vel = INIT_VEL_STEPPER;
-            printf("J1/2/3 - initialized\n\r");
         }
         speed = std::clamp(5 * angle, -INIT_VEL_STEPPER, INIT_VEL_STEPPER);
         speed_steps = m_stepperConfiguration->angleDegToSteps(speed);
         stepper->setMaxSpeed(speed_steps);
         stepper->setSpeed(speed_steps);
-        printf("J1/2/3 - angle: %f, speed: %f\n\r", angle, speed);
         break;
     case POSITION_CONTROL:
         speed_steps = m_stepperConfiguration->angleDegToSteps(*setpoint_vel);
@@ -474,7 +472,6 @@ void JointController::setJ1Position(float position)
     m_state_j1 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j1 = position;
     m_setpoint_vel_j1 = MAX_VEL_STEPPER;
-    printf("J1 - setpoint: %f\n\r", m_setpoint_pos_j1);
 }
 
 /**
@@ -487,7 +484,6 @@ void JointController::setJ2Position(float position)
     m_state_j2 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j2 = position;
     m_setpoint_vel_j2 = MAX_VEL_STEPPER;
-    printf("J2 - setpoint: %f\n\r", m_setpoint_pos_j2);
 }
 
 /**
@@ -500,7 +496,6 @@ void JointController::setJ3Position(float position)
     m_state_j3 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j3 = position;
     m_setpoint_vel_j3 = MAX_VEL_STEPPER;
-    printf("J3 - setpoint: %f\n\r", m_setpoint_pos_j3);
 }
 
 /**
@@ -513,7 +508,6 @@ void JointController::setJ4Position(float position)
     m_state_j4 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j4 = position;
     m_setpoint_vel_j4 = MAX_VEL_DCMOTOR;
-    printf("J4 - setpoint: %f\n\r", m_setpoint_pos_j4);
 }
 
 /**
@@ -526,7 +520,6 @@ void JointController::setJ5Position(float position)
     m_state_j5 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j5 = position;
     m_setpoint_vel_j5 = MAX_VEL_DCMOTOR;
-    printf("J5 - setpoint: %f\n\r", m_setpoint_pos_j5);
 }
 
 /**
@@ -595,7 +588,6 @@ void JointController::setJ1PositionVelocity(float position, float velocity)
     m_state_j1 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j1 = position;
     m_setpoint_vel_j1 = velocity;
-    printf("J1 - setpoint pos: %f, vel: %f\n\r", m_setpoint_pos_j1, m_setpoint_vel_j1);
 }
 
 /**
@@ -609,7 +601,6 @@ void JointController::setJ2PositionVelocity(float position, float velocity)
     m_state_j2 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j2 = position;
     m_setpoint_vel_j2 = velocity;
-    printf("J2 - setpoint pos: %f, vel: %f\n\r", m_setpoint_pos_j2, m_setpoint_vel_j2);
 }
 
 /**
@@ -623,7 +614,6 @@ void JointController::setJ3PositionVelocity(float position, float velocity)
     m_state_j3 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j3 = position;
     m_setpoint_vel_j3 = velocity;
-    printf("J3 - setpoint pos: %f, vel: %f\n\r", m_setpoint_pos_j3, m_setpoint_vel_j3);
 }
 
 /**
@@ -637,7 +627,6 @@ void JointController::setJ4PositionVelocity(float position, float velocity)
     m_state_j4 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j4 = position;
     m_setpoint_vel_j4 = velocity;
-    printf("J4 - setpoint pos: %f, vel: %f\n\r", m_setpoint_pos_j4, m_setpoint_vel_j4);
 }
 
 /**
@@ -651,7 +640,6 @@ void JointController::setJ5PositionVelocity(float position, float velocity)
     m_state_j5 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j5 = position;
     m_setpoint_vel_j5 = velocity;
-    printf("J5 - setpoint pos: %f, vel: %f\n\r", m_setpoint_pos_j5, m_setpoint_vel_j5);
 }
 
 /**
