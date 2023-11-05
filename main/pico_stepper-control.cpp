@@ -76,9 +76,6 @@ int main()
         gpio_init(LED_PIN);
         gpio_set_dir(LED_PIN, GPIO_OUT);
     }
-    
-    // Make the I2C pins available to picotool
-    //bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA1_PIN, PICO_DEFAULT_I2C_SCL1_PIN, GPIO_FUNC_I2C));
 
     Robot robot;
 

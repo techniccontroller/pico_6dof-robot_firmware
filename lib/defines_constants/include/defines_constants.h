@@ -11,33 +11,41 @@
 #pragma once
 
 
-#define I2C_PORT0 i2c0
-#define I2C_SDA0 12
-#define I2C_SCL0 13
-
-#define I2C_PORT1 i2c1
-#define I2C_SDA1 14
-#define I2C_SCL1 15
-
-
+/**
+ * @brief I2C addresses
+ * 
+ */
 #define TCAADDR 0x70
 #define ASADDR 0x36
 
+/**
+ * @brief PIN MAPPING
+ * 
+ */
+// I2C
+#define I2C_PORT0 i2c0
+#define I2C_SDA0_PIN 12
+#define I2C_SCL0_PIN 13
 
-// Pin defines
-// Motor 1 is the motor for Joint 1
+// Stepper Driver control pins
+#define MS1_PIN 18
+#define MS2_PIN 17
+#define MS3_PIN 16
+#define ENABLE_PIN 28
+
+// Motor 1 is the motor for Joint 1 (stepper motor)
 #define MOTOR1_STEP_PIN 20
 #define MOTOR1_DIR_PIN 19
 
-// Motor 2 is the motor for Joint 2
+// Motor 2 is the motor for Joint 2 (stepper motor)
 #define MOTOR2_STEP_PIN 22
 #define MOTOR2_DIR_PIN 21
 
-// Motor 3 is the motor for Joint 3
+// Motor 3 is the motor for Joint 3 (stepper motor)
 #define MOTOR3_STEP_PIN 27
 #define MOTOR3_DIR_PIN 26
 
-// Motor 4 and Motor 5 working together for Joint 4 and Joint 5
+// Motor 4 and Motor 5 working together for Joint 4 and Joint 5 (DC motors)
 #define MOTOR4_ENABLE_PIN 6
 #define MOTOR4_IN1_PIN 7
 #define MOTOR4_IN2_PIN 8
@@ -50,17 +58,26 @@
 #define MOTOR5_ENC_A_PIN 4
 #define MOTOR5_ENC_B_PIN 5
 
-#define MS1_PIN 18
-#define MS2_PIN 17
-#define MS3_PIN 16
-#define ENABLE_PIN 28
+// Servo
+#define SERVO_GRIPPER_PIN 14
 
+
+/**
+ * @brief EEPROM addresses
+ * 
+ */
 #define EEPROM_SIZE 512
 #define EEPROM_ADDR_ENCJ2 0
 #define EEPROM_ADDR_ENCJ3 4
 #define EEPROM_ADDR_ENCJ4 8
 #define EEPROM_ADDR_ENCJ5 12
 
+
+/**
+ * @brief constants for the robot
+ * 
+ */
+*/
 #define MAX_VEL_STEPPER 96.0f       // 3000 steps/s = 96 deg/s
 #define MAX_VEL_DCMOTOR 200.0f      // PWM
 
