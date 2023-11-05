@@ -202,6 +202,11 @@ if __name__ == "__main__":
     btn_send_coord = sg.Button("SEND", size=7)
     btn_save_zeros = sg.Button("SAVE ZEROS", size=15)
     btn_load_zeros = sg.Button("LOAD ZEROS", size=15)
+    btn_gripper_open = sg.Button("OPEN", size=15)
+    btn_gripper_close = sg.Button("CLOSE", size=15)
+    btn_gripper_set = sg.Button("SET", size=15)
+    txt_gripper = sg.Input(default_text="0", size=4)
+
     
     layout = [  [sg.Text("Initialize all joints:")], 
                 [btn_init],
@@ -212,7 +217,10 @@ if __name__ == "__main__":
                 [txt_custom],
                 [btn_send_coord],
                 [btn_save_zeros],
-                [btn_load_zeros]
+                [btn_load_zeros],
+                [sg.Text("Gripper:")],
+                [btn_gripper_open, btn_gripper_close],
+                [txt_gripper, btn_gripper_set],
                 ]
 
     # create the window
@@ -261,6 +269,15 @@ if __name__ == "__main__":
 
         elif event == "LOAD ZEROS":
             ser.write(("LOAD_ZEROS\n").encode())
+        
+        elif event == "OPEN":
+            ser.write(("GRIP_OPEN\n").encode())
+
+        elif event == "CLOSE":
+            ser.write(("GRIP_CLOSE\n").encode())
+        
+        elif event == "SET":
+            ser.write(("GRIP_SET(" + txt_gripper.get() + ")\n").encode())
         
         elif event.endswith("press"):
             i = 0

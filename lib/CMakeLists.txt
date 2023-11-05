@@ -1,3 +1,4 @@
+add_subdirectory(pico_servo)
 add_subdirectory(as5600)
 add_subdirectory(communication)
 add_subdirectory(defines_constants)
@@ -6,5 +7,6 @@ add_subdirectory(motorcontroller)
 add_subdirectory(jointcontroller)
 add_subdirectory(dcmotor)
 add_subdirectory(eeprom)
+add_subdirectory(gripper)
 add_subdirectory(robot)
 

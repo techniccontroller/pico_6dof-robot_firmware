@@ -7,6 +7,10 @@ pico_set_program_version(pico_stepper-control "0.1")
 pico_enable_stdio_uart(pico_stepper-control 0)
 pico_enable_stdio_usb(pico_stepper-control 1)
 
+target_compile_definitions(pico_stepper-control PRIVATE
+        PICO_MAX_SHARED_IRQ_HANDLERS=5
+)
+
 # Add the standard library to the build
 target_link_libraries(pico_stepper-control 
         pico_stdlib 

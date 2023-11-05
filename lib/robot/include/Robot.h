@@ -9,6 +9,7 @@
 #include <DCMotor.h>
 #include <MotorController.h>
 #include <JointController.h>
+#include <Gripper.h>
 
 #pragma once
 
@@ -50,6 +51,10 @@ public:
     void moveToConfiguration(std::vector<float> config, float velocity = 10);
     void moveToPose(std::vector<float> pose, float velocity = 10);
 
+    void openGripper();
+    void closeGripper();
+    void setGripperPosition(float position);
+
     std::vector<float> getConfiguration();
     std::vector<float> getPose();
 
@@ -77,6 +82,8 @@ private:
     MotorController m_motorController;           /**< MotorController. */
 
     StepperConfiguration m_stepperConfiguration; /**< Stepper configuration. */
+
+    Gripper m_gripper; /**< Gripper. */
 
     void loadSensorCalibrationData(AS5600 *encoder, int addr);
     void writeSensorCalibrationData(AS5600 *encoder, int addr);

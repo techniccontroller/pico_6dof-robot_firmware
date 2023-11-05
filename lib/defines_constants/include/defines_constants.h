@@ -59,7 +59,7 @@
 #define MOTOR5_ENC_B_PIN 5
 
 // Servo
-#define SERVO_GRIPPER_PIN 14
+#define SERVO_GRIPPER_PIN 15
 
 
 /**
@@ -77,7 +77,6 @@
  * @brief constants for the robot
  * 
  */
-*/
 #define MAX_VEL_STEPPER 96.0f       // 3000 steps/s = 96 deg/s
 #define MAX_VEL_DCMOTOR 200.0f      // PWM
 
@@ -92,6 +91,10 @@
 #define LIMIT_J4_MAX 60.0f
 #define LIMIT_J4_J5_DIFF_MIN 8.0f
 #define LIMIT_J4_J5_DIFF_MAX 120.0f
+
+#define LIMIT_GRIP_OPEN 0.0f
+#define LIMIT_GRIP_CLOSE 180.0f
+
 
 /**
  * @brief Enum for the different motors

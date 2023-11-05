@@ -269,6 +269,25 @@ void Communication::process_cmd(char *cmd)
         m_robot->loadAllSensorCalibrationData();
         comm_func_write("Zeros loaded\n");
     }
+    else if(starts_with("GRIP_", cmd)){
+        if(starts_with("GRIP_OPEN", cmd)){
+            m_robot->openGripper();
+            comm_func_write("Gripper opened\n");
+        }
+        else if(starts_with("GRIP_CLOSE", cmd)){
+            m_robot->closeGripper();
+            comm_func_write("Gripper closed\n");
+        }
+        else if(starts_with("GRIP_SET", cmd)){
+            int position = extract_cmd_values(cmd)[0];
+            m_robot->setGripperPosition(position);
+            if(DEBUG_IS_ENABLED){
+                char str_buffer[20];
+                sprintf(str_buffer, "Gripper position set: %d", position);
+                comm_func_write(str_buffer);
+            }
+        }
+    }
 }
 
 void Communication::check_incoming_cmds()

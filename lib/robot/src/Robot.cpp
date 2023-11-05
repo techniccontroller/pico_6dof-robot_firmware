@@ -16,7 +16,8 @@ Robot::Robot(void):
     m_motorM4(MOTOR4_ENABLE_PIN, MOTOR4_IN1_PIN, MOTOR4_IN2_PIN),
     m_motorM5(MOTOR5_ENABLE_PIN, MOTOR5_IN1_PIN, MOTOR5_IN2_PIN),
     m_jointController(&m_stepperConfiguration),
-    m_motorController(&m_stepperConfiguration)
+    m_motorController(&m_stepperConfiguration),
+    m_gripper(SERVO_GRIPPER_PIN)
 {
     m_stepperM1.setMaxSpeed(2000);
     m_stepperM1.setAcceleration(500);
@@ -150,6 +151,21 @@ void Robot::moveToPose(std::vector<float> pose, float velocity)
     std::vector<float> config = inverseKinematics(pose[0], pose[1], pose[2]);
     printf("config: %f, %f, %f\n", config[0], config[1], config[2]);
     moveToConfiguration(config, velocity);
+}
+
+void Robot::openGripper()
+{
+    m_gripper.open();
+}
+
+void Robot::closeGripper()
+{
+    m_gripper.close();
+}
+
+void Robot::setGripperPosition(float position)
+{
+    m_gripper.moveToPosition(position);
 }
 
 std::vector<float> Robot::getConfiguration()
