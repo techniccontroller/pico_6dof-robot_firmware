@@ -28,6 +28,13 @@ public:
         AUTO
     };
 
+    enum GripperPose
+    {
+        NONE,
+        DOWN,
+        LEVEL,
+    };
+
     Robot(void);
 
     void setMode(RobotMode mode);
@@ -89,6 +96,6 @@ private:
     void writeSensorCalibrationData(AS5600 *encoder, int addr);
     void initEEPROM();
 
-    std::vector<float> inverseKinematics(float x, float y, float z);
+    std::vector<float> inverseKinematics(float x, float y, float z, GripperPose gripperPose = GripperPose::DOWN);
     std::vector<float> forwardKinematics(std::vector<float> config);
 };

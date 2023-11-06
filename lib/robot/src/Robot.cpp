@@ -12,7 +12,7 @@ Robot::Robot(void):
     m_stepperM1(AccelStepper::DRIVER, MOTOR1_STEP_PIN, MOTOR1_DIR_PIN),
     m_stepperM2(AccelStepper::DRIVER, MOTOR2_STEP_PIN, MOTOR2_DIR_PIN),
     m_stepperM3(AccelStepper::DRIVER, MOTOR3_STEP_PIN, MOTOR3_DIR_PIN),
-    m_stepperConfiguration(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, 4, 60.0/16.0 * 60.0/16.0),
+    m_stepperConfiguration(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, MICROSTEP_RESOLUTION, 60.0/16.0 * 60.0/16.0),
     m_motorM4(MOTOR4_ENABLE_PIN, MOTOR4_IN1_PIN, MOTOR4_IN2_PIN),
     m_motorM5(MOTOR5_ENABLE_PIN, MOTOR5_IN1_PIN, MOTOR5_IN2_PIN),
     m_jointController(&m_stepperConfiguration),
@@ -236,9 +236,10 @@ void Robot::moveToConfiguration(std::vector<float> config, float velocity){
  * @param x     X position of the robot [m]
  * @param y     Y position of the robot [m]
  * @param z     Z position of the robot [m]
+ * @param griperPose    Pose of the gripper (NONE, DOWN, LEVEL)
  * @return std::vector<float>   Configuration of the robot [deg]
  */
-std::vector<float> Robot::inverseKinematics(float x, float y, float z){
+std::vector<float> Robot::inverseKinematics(float x, float y, float z, GripperPose gripperPose){
     float l1 = 0.21;
     float l2 = 0.23;
 
@@ -260,6 +261,19 @@ std::vector<float> Robot::inverseKinematics(float x, float y, float z){
     result.push_back(m0 * 180.0 / M_PI);
     result.push_back(m1 * 180.0 / M_PI);
     result.push_back(-m2 * 180.0 / M_PI);
+
+    if(gripperPose == GripperPose::DOWN){
+        float m3 = -(M_PI/2 - m2);
+        float m4 = m0;
+        result.push_back(m3 * 180.0 / M_PI);
+        result.push_back(m4 * 180.0 / M_PI);
+    }
+    else if(gripperPose == GripperPose::LEVEL){
+        float m3 = m2;
+        float m4 = 0;
+        result.push_back(m3 * 180.0 / M_PI);
+        result.push_back(m4 * 180.0 / M_PI);
+    }
     return result;
 }
 
