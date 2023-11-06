@@ -48,6 +48,12 @@ void DCMotor::ctrlOutput(int output)
         gpio_func_set_state(m_dir2_pin, LOW);
         *m_direction = 0;
     }
+    if(abs(output) < 20 && abs(output) > 10){
+        output = 20;
+    }
+    else if(abs(output) < 10){
+        output = 0;
+    }
     pwm_func_set_level(m_enable_pin, std::abs(output));
     
 }
