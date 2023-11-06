@@ -30,7 +30,12 @@ int AS5600::getZero() {
 }
 
 int AS5600::readAngle() {
-    return readReg(AS560x_RAW_ANGLE_REG, true, 0xFFF);
+    absolute_time_t current_time = get_absolute_time();
+    if(absolute_time_diff_us(g_last_time_angle, current_time) > 10000){
+        g_last_time_angle = current_time;
+        g_last_angle = (int) readReg(AS560x_RAW_ANGLE_REG, true, 0xFFF);
+    }
+    return g_last_angle;
 }
 
 float AS5600::readAngleDeg() {
@@ -52,8 +57,8 @@ float AS5600::getCorrectedAngleDeg() {
 
 uint8_t AS5600::getStatus() {
     absolute_time_t current_time = get_absolute_time();
-    if(absolute_time_diff_us(g_last_time, current_time) > 500000){
-        g_last_time = current_time;
+    if(absolute_time_diff_us(g_last_time_status, current_time) > 500000){
+        g_last_time_status = current_time;
         g_last_status = (uint8_t) readReg(AS560x_STATUS_REG, false, 0x38);
     }
     return g_last_status;
@@ -67,7 +72,7 @@ uint8_t AS5600::getStatus() {
 int AS5600::muxselect(uint8_t i) {
   if (i > 7) return -1;
   int value = 1 << i;
-  absolute_time_t timeout = make_timeout_time_ms(100);
+  absolute_time_t timeout = make_timeout_time_ms(500);
   return i2c_write_blocking_until(g_i2c_port, g_mux_addr, (uint8_t *) &value, 1, false, timeout);
 }
 
@@ -80,10 +85,12 @@ uint16_t AS5600::readReg(int addr, bool wide, uint16_t mask) {
         int result = i2c_write_timeout_us(g_i2c_port, g_addr, (uint8_t *) &addr, 1, true, I2C_TIMEOUT_US);
         if (result <= 0) {
             // error
+            printf("Error: i2c_write failed: %d\n\r", result);
         }
         result = i2c_read_timeout_us(g_i2c_port, g_addr, (uint8_t *) &buf, (wide ? 2 : 1), false, I2C_TIMEOUT_US);
         if (result <= 0) {
             // error
+            printf("Error: i2c_read failed: %d\n\r", result);
         }
         if (wide) {
             return __bswap16(buf) & mask;
@@ -93,7 +100,7 @@ uint16_t AS5600::readReg(int addr, bool wide, uint16_t mask) {
     } 
     else {
         // error
-        printf("Error: Muxselect failed\n\r");
+        printf("Error: Muxselect failed: %d\n\r", ret);
         return 0;
     }
     

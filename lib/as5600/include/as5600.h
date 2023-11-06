@@ -53,8 +53,10 @@ private:
     int g_zero = 0;
     uint8_t g_mux_channel;
     uint8_t g_mux_addr;
-    absolute_time_t g_last_time = get_absolute_time();
+    absolute_time_t g_last_time_status = get_absolute_time();
+    absolute_time_t g_last_time_angle = get_absolute_time();
     uint8_t g_last_status = 0;
+    int g_last_angle = 0;
 };
 
 
