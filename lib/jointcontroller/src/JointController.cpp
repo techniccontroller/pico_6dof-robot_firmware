@@ -235,7 +235,7 @@ void JointController::stepDCMotor(DCMotor * motor, AS5600 * encoder, JointContro
             derivative = (diff - prev_diff) / dt;
             prev_diff = diff;
             speed = p * diff + i * integral + d * derivative;
-            speed = std::clamp(speed, -INIT_VEL_DCMOTOR, INIT_VEL_DCMOTOR);
+            speed = std::clamp(speed, -MAX_VEL_DCMOTOR, -MAX_VEL_DCMOTOR);
             *speed_m4 = -speed;
             *speed_m5 = -speed;
         }
