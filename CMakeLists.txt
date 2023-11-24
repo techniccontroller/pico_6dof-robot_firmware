@@ -14,7 +14,7 @@ set(PICO_SDK_PATH "F:/PICO/pico-sdk")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(pico_stepper-control C CXX ASM)
+project(pico_5dof-robot-main C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
