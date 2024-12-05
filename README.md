@@ -10,6 +10,7 @@
 
 ```
 pip3 install PySimpleGUI
+pip3 install pyserial
 ```
 
 - Use ```sudo dmesg | tail``` to identify the name of the serial port (Typically **/dev/ttyACM0**).
