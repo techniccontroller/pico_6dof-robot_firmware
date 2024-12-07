@@ -69,8 +69,6 @@ public:
 
     float getJointPosition(int joint);
 
-    void printEncoderPositions();
-
     std::string getRobotDataAsJson();
 
     void setPID(int joint, float p, float i, float d);

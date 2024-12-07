@@ -203,13 +203,6 @@ float Robot::getJointPosition(int joint)
     return 0.0f;
 }
 
-void Robot::printEncoderPositions()
-{
-    printf("Encoder positions: %f, %f, %f, %f\n\r", m_encoderJ2.getCorrectedAngleDeg(), m_encoderJ3.getCorrectedAngleDeg(), m_encoderJ4.getCorrectedAngleDeg(), m_encoderJ5.getCorrectedAngleDeg());
-    printf("Encoder positions(raw): %f, %f, %f, %f\n\r", m_encoderJ2.readAngleDeg(), m_encoderJ3.readAngleDeg(), m_encoderJ4.readAngleDeg(), m_encoderJ5.readAngleDeg());
-    printf("Encoder status: %d, %d, %d, %d\n", m_encoderJ2.getStatus(), m_encoderJ3.getStatus(), m_encoderJ4.getStatus(), m_encoderJ5.getStatus());
-}
-
 std::string Robot::getRobotDataAsJson()
 {
     nlohmann::json jsonObj;
@@ -258,7 +251,7 @@ void Robot::moveToConfiguration(std::vector<float> config, float velocity){
  * @param x     X position of the robot [m]
  * @param y     Y position of the robot [m]
  * @param z     Z position of the robot [m]
- * @param griperPose    Pose of the gripper (NONE, DOWN, LEVEL)
+ * @param gripperPose    Pose of the gripper (NONE, DOWN, LEVEL)
  * @return std::vector<float>   Configuration of the robot [deg]
  */
 std::vector<float> Robot::inverseKinematics(float x, float y, float z, GripperPose gripperPose){
