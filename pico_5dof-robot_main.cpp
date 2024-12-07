@@ -61,7 +61,6 @@ void setLEDState(bool state)
 }
 
 
-
 int main()
 {
     stdio_init_all();
@@ -80,7 +79,7 @@ int main()
     Robot robot;
 
     setup_default_uart();
-
+    
     gpio_func_set_mode(MOTOR4_ENC_A_PIN, GPIO_FUNC_INPUT);
     gpio_func_add_irq(MOTOR4_ENC_A_PIN, GPIO_FUNC_IRQ_EDGE_FALL, true, &callback_encoder);
     gpio_func_set_mode(MOTOR4_ENC_B_PIN, GPIO_FUNC_INPUT);
@@ -94,11 +93,14 @@ int main()
 
     puts("Start programm...");
 
+    printf("System Clock Frequency is %d Hz\n", clock_get_hz(clk_sys));
+    printf("USB Clock Frequency is %d Hz\n", clock_get_hz(clk_usb));
+    
     uint32_t last_print_time = time_us_64() / 1000;
     uint32_t last_step_time = time_us_64() / 1000;
 
     while (true) {
-
+        
         comm.check_incoming_cmds();
 
         // measure and print config every 500ms
