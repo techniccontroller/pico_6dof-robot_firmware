@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string>
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include "hardware/pio.h"
@@ -10,6 +11,7 @@
 #include <MotorController.h>
 #include <JointController.h>
 #include <Gripper.h>
+#include <json.hpp>
 
 #pragma once
 
@@ -68,6 +70,8 @@ public:
     float getJointPosition(int joint);
 
     void printEncoderPositions();
+
+    std::string getRobotDataAsJson();
 
     void setPID(int joint, float p, float i, float d);
 

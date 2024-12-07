@@ -51,6 +51,8 @@ target_compile_definitions(pico_5dof-robot_main PRIVATE
         PICO_MAX_SHARED_IRQ_HANDLERS=5
 )
 
+target_compile_options(pico_5dof-robot_main PRIVATE -Wno-psabi)
+
 # Add the standard library to the build
 target_link_libraries(pico_5dof-robot_main
         pico_stdlib)

@@ -2,6 +2,8 @@
 #include "defines_constants.h"
 #include "EEPROM.h"
 #include <math.h>
+#include <string>
+#include <cstdio>
 
 
 Robot::Robot(void): 
@@ -206,6 +208,26 @@ void Robot::printEncoderPositions()
     printf("Encoder positions: %f, %f, %f, %f\n\r", m_encoderJ2.getCorrectedAngleDeg(), m_encoderJ3.getCorrectedAngleDeg(), m_encoderJ4.getCorrectedAngleDeg(), m_encoderJ5.getCorrectedAngleDeg());
     printf("Encoder positions(raw): %f, %f, %f, %f\n\r", m_encoderJ2.readAngleDeg(), m_encoderJ3.readAngleDeg(), m_encoderJ4.readAngleDeg(), m_encoderJ5.readAngleDeg());
     printf("Encoder status: %d, %d, %d, %d\n", m_encoderJ2.getStatus(), m_encoderJ3.getStatus(), m_encoderJ4.getStatus(), m_encoderJ5.getStatus());
+}
+
+std::string Robot::getRobotDataAsJson()
+{
+    nlohmann::json jsonObj;
+    
+    std::vector<float> config = getConfiguration();
+    std::vector<float> pose = getPose();
+
+    jsonObj["config"] = config;
+
+    jsonObj["pose"] = pose;
+
+    jsonObj["encoder_positions"] = {m_encoderJ2.getCorrectedAngleDeg(), m_encoderJ3.getCorrectedAngleDeg(),
+                                     m_encoderJ4.getCorrectedAngleDeg(), m_encoderJ5.getCorrectedAngleDeg()};
+    jsonObj["encoder_positions_raw"] = {m_encoderJ2.readAngleDeg(), m_encoderJ3.readAngleDeg(),
+                                         m_encoderJ4.readAngleDeg(), m_encoderJ5.readAngleDeg()};
+    jsonObj["encoder_status"] = {m_encoderJ2.getStatus(), m_encoderJ3.getStatus(),
+                                  m_encoderJ4.getStatus(), m_encoderJ5.getStatus()};
+    return jsonObj.dump();
 }
 
 void Robot::setPID(int joint, float p, float i, float d)

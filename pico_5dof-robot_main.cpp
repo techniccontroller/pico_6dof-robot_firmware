@@ -107,11 +107,9 @@ int main()
         uint32_t current_time = time_us_64() / 1000;
         if((current_time - last_print_time > 2000))
         {
-            std::vector<float> config = robot.getConfiguration();
-            printf("Current config [deg]: [%6.2f] [%6.2f] [%6.2f] [%6.2f] [%6.2f]\n\r", config[0], config[1], config[2], config[3], config[4]);
-            std::vector<float> pose = robot.getPose();
-            printf("Current pose [m]: [%6.3f] [%6.3f] [%6.3f]\n\r", pose[0], pose[1], pose[2]);
-            robot.printEncoderPositions();
+            std::string robotDataJson = robot.getRobotDataAsJson();
+            std::string topLevelJson = "{ \"robot_data\": " + robotDataJson + " }";
+            puts(topLevelJson.c_str());
             last_print_time = current_time;
         }
 

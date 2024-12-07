@@ -9,4 +9,5 @@ add_subdirectory(dcmotor)
 add_subdirectory(eeprom)
 add_subdirectory(gripper)
 add_subdirectory(robot)
+add_subdirectory(nlohmann)
 
