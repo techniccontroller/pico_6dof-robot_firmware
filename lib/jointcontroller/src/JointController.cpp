@@ -175,7 +175,10 @@ void JointController::checkJointLimitsJ2J3(){
     }
     if(angle_J3 < LIMIT_J3_MIN){
         // warning - robot reached a the limit of J3
-        m_state_j3 = JointControlState::DISABLED;
+        if(m_stepper3->speed() > 0){
+            m_state_j3 = JointControlState::DISABLED;
+        }
+        //m_state_j3 = JointControlState::DISABLED;
     }
     if(angle_J2 < LIMIT_J2_MIN || angle_J2 > LIMIT_J2_MAX){
         // warning - robot reached a the limit of J2
