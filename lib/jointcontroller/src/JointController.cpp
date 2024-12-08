@@ -295,6 +295,26 @@ bool JointController::isJointLimitReachedJ4(float speed_m4_j4){
     return false;
 }
 
+/**
+ * @brief Check if the joint limit of J5 is reached
+ * 
+ * @return true     If the joint limit is reached
+ * @return false    If the joint limit is not reached
+ */
+bool JointController::isJointLimitReachedJ5(float speed_m5_j5){
+    float angle = m_encoder5->readAngleDeg();
+    if(angle > 180){
+        angle = angle - 360;
+    }
+    if(angle < LIMIT_J5_MIN && speed_m5_j5 > 0){
+        return true;
+    }
+    else if(angle > LIMIT_J5_MAX && speed_m5_j5 < 0){
+        return true;
+    }
+    return false;
+}
+
 bool JointController::isAllEncoderStatusValid(){
     if(m_encoder1 != NULL && m_encoder1->getStatus() != 32){
         return false;
@@ -345,6 +365,10 @@ void JointController::step()
         speed_m5_j4 = 0;
     }
     stepDCMotor(m_motor5, m_encoder5, &m_state_j5, pid_p_j5, pid_i_j5, pid_d_j5, &m_setpoint_pos_j5, &m_setpoint_vel_j5, &speed_m4_j5, &speed_m5_j5);
+    if(encodersValid && isJointLimitReachedJ5(speed_m5_j5)){
+        speed_m4_j5 = 0;
+        speed_m5_j5 = 0;
+    }
     m_motor4->setSpeed(speed_m4_j4 + speed_m4_j5);
     m_motor5->setSpeed(speed_m5_j4 - speed_m5_j5);
 }

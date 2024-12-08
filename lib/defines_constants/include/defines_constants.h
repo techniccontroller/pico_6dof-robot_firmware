@@ -91,6 +91,8 @@
 #define LIMIT_J3_MAX 10.0f
 #define LIMIT_J4_MIN -160.0f
 #define LIMIT_J4_MAX 60.0f
+#define LIMIT_J5_MIN -60.0f
+#define LIMIT_J5_MAX 160.0f
 #define LIMIT_J2_J3_DIFF_MIN 5.0f
 #define LIMIT_J2_J3_DIFF_MAX 108.0f
 
