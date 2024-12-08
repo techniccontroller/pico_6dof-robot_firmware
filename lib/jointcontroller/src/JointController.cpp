@@ -89,6 +89,7 @@ void JointController::stepStepper(AccelStepper * stepper, AS5600 * encoder, Join
     {
     case DISABLED:
         currentPos = stepper->currentPosition();
+        stepper->setAcceleration(10000.0);
         stepper->moveTo(currentPos);
         break;
     case INITIALIZATION:
@@ -192,20 +193,17 @@ void JointController::checkJointLimitsJ2J3(){
         if(m_stepper3->speed() > 0){
             m_state_j3 = JointControlState::DISABLED;
         }
-        //m_state_j3 = JointControlState::DISABLED;
     }
     if(angle_J2 < LIMIT_J2_MIN){
         // warning - robot reached the min limit of J2
         if(m_stepper2->speed() > 0){
             m_state_j2 = JointControlState::DISABLED;
         }
-        //m_state_j2 = JointControlState::DISABLED;
     } else if(angle_J2 > LIMIT_J2_MAX){
         // warning - robot reached the max limit of J2
         if(m_stepper2->speed() < 0){
             m_state_j2 = JointControlState::DISABLED;
         }
-        //m_state_j2 = JointControlState::DISABLED;
     }
 }
 
