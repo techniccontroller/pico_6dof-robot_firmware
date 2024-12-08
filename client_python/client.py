@@ -4,7 +4,7 @@ import threading
 import sys
 import time
 
-COM_PORT_PICO_DEFAULT = "COM4"
+COM_PORT_PICO_DEFAULT = "COM5"
 
 joint_names = ['J1', 'J2', 'J3', 'J4', 'J5']
 motor_names = ['M1', 'M2', 'M3', 'M4', 'M5']
@@ -21,8 +21,11 @@ def thread_function(name):
     global stop_threads, ser
     while not stop_threads:
         while ser.in_waiting:
-            data_in = ser.readline().decode("ascii")
-            print("uC: " + data_in)
+            try:
+                data_in = ser.readline().decode("ascii")
+                print("uC: " + data_in)
+            except UnicodeDecodeError:
+                print("Error decoding incoming data")
 
 def thread_square(name):
 
