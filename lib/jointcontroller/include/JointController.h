@@ -51,6 +51,7 @@ public:
     void stepStepper(AccelStepper * stepper, AS5600 * encoder, JointControlState * state, float * setpoint_pos, float * setpoint_vel);
     std::vector<float> getConfiguration();
     void checkJointLimitsJ2J3();
+    float getDiffAngleJ2J3();
     void stepDCMotor(DCMotor * motor, AS5600 * encoder, JointControlState * state, float pid_p, float pid_i, float pid_d, float * setpoint_pos, float * setpoint_vel, float * speed_m4, float * speed_m5);
     bool isJointLimitReachedJ4(float speed_m4_j4);
     bool isJointLimitReachedJ5(float speed_m5_j5);

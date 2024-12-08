@@ -158,18 +158,8 @@ std::vector<float> JointController::getConfiguration()
 void JointController::checkJointLimitsJ2J3(){
     float angle_J2 = m_encoder2->readAngleDeg();
     float angle_J3 = m_encoder3->readAngleDeg();
-    float inv_angle_J2 = (360 - angle_J2);
-    if(angle_J2 > 180){
-        angle_J2 = angle_J2 - 360;
-    }
-    if(angle_J3 > 180){
-        angle_J3 = angle_J3 - 360;
-    }
-    if(inv_angle_J2 > 180){
-        inv_angle_J2 = inv_angle_J2 - 360;
-    }
-    float angleDiff = inv_angle_J2 - angle_J3;
-    if(abs(angleDiff) > LIMIT_J2_J3_DIFF_MAX){
+    float angleDiff = getDiffAngleJ2J3();
+    if(angleDiff > LIMIT_J2_J3_DIFF_MAX){
         // warning - robot reached the max limit between J2 and J3
 
         if(m_stepper2->speed() > 0){
@@ -179,7 +169,7 @@ void JointController::checkJointLimitsJ2J3(){
             m_state_j3 = JointControlState::DISABLED;
         }
     }
-    else if(abs(angleDiff) < LIMIT_J2_J3_DIFF_MIN){
+    else if(angleDiff < LIMIT_J2_J3_DIFF_MIN){
         // warning - robot reached the min limit between J2 and J3
         if(m_stepper2->speed() < 0){
             m_state_j2 = JointControlState::DISABLED;
@@ -205,6 +195,22 @@ void JointController::checkJointLimitsJ2J3(){
             m_state_j2 = JointControlState::DISABLED;
         }
     }
+}
+
+float JointController::getDiffAngleJ2J3(){
+    float angle_J2 = m_encoder2->readAngleDeg();
+    float angle_J3 = m_encoder3->readAngleDeg();
+    float inv_angle_J2 = (360 - angle_J2);
+    if(angle_J2 > 180){
+        angle_J2 = angle_J2 - 360;
+    }
+    if(angle_J3 > 180){
+        angle_J3 = angle_J3 - 360;
+    }
+    if(inv_angle_J2 > 180){
+        inv_angle_J2 = inv_angle_J2 - 360;
+    }
+    return inv_angle_J2 - angle_J3;
 }
 
 /**

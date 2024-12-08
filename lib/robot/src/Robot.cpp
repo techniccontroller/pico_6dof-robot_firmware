@@ -220,6 +220,7 @@ std::string Robot::getRobotDataAsJson()
                                          m_encoderJ4.readAngleDeg(), m_encoderJ5.readAngleDeg()};
     jsonObj["robot_data"]["encoder_status"] = {m_encoderJ2.getStatus(), m_encoderJ3.getStatus(),
                                   m_encoderJ4.getStatus(), m_encoderJ5.getStatus()};
+    jsonObj["robot_data"]["diffAngleJ2J3"] = m_jointController.getDiffAngleJ2J3();
     return jsonObj.dump();
 }
 
