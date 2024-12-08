@@ -3,6 +3,7 @@ import PySimpleGUI as sg
 import threading
 import sys
 import time
+import json
 
 COM_PORT_PICO_DEFAULT = "COM5"
 
@@ -12,18 +13,30 @@ motor_names = ['M1', 'M2', 'M3', 'M4', 'M5']
 stop_threads = False
 active_joint_motor = ""
 
+robot_data = dict()
+all_lbls_joints = []
+
 def thread_function(name):
     """A thread which only handles the incoming data from Pico and outputs it to console
 
     Args:
         name (string): name of thread (currently not used)
     """
-    global stop_threads, ser
+    global stop_threads, ser, robot_data, all_lbls_joints
     while not stop_threads:
         while ser.in_waiting:
             try:
                 data_in = ser.readline().decode("ascii")
                 print("uC: " + data_in)
+
+                if data_in.strip().startswith("{") and data_in.strip().endswith("}"):
+                    try:
+                        json_data = json.loads(data_in)
+                        if "robot_data" in json_data:
+                            robot_data = json_data["robot_data"]
+                            update_lbls(all_lbls_joints)
+                    except json.JSONDecodeError:
+                        print("Error decoding JSON data")
             except UnicodeDecodeError:
                 print("Error decoding incoming data")
 
@@ -117,8 +130,6 @@ def create_btns_joint(names):
     for mo in names:
         all_btns_manual.append(sg.Button("F", size=(4, 2)))
     for mo in names:
-        all_btns_manual.append(sg.Button("I", size=(4, 2)))
-    for mo in names:
         all_btns_manual.append(sg.Button("Z", size=(4, 2)))
     for mo in names:
         all_btns_manual.append(sg.Button("S", size=(4, 2)))
@@ -144,6 +155,12 @@ def create_txts_joint(names):
         all_txts_manual.append(sg.Input(default_text="0", size=4))
     return all_txts_manual
 
+def create_lbls_joint(names):
+    all_lbls_manual = []
+    for mo in names:
+        all_lbls_manual.append(sg.Text("-", size=4))
+    return all_lbls_manual
+
 def create_txts_motor(names):    
     all_txts_manual = []
     for mo in names:
@@ -153,17 +170,20 @@ def create_txts_motor(names):
             all_txts_manual.append(sg.Input(default_text="50", size=4))
     return all_txts_manual
 
-def create_btn_layout_joint(names, btns, txts):
+def create_btn_layout_joint(names, btns, txts, lbls):
     button_layout = []
     for i in range(len(names)):
         button_layout.append(sg.Column([[sg.Text(names[i])], 
                                         [btns[i]], 
                                         [btns[i+len(names)]], 
-                                        [btns[i+2*len(names)]], 
-                                        [btns[i+3*len(names)]], 
+                                        [btns[i+2*len(names)]],
+                                        [sg.Text("Vel:")], 
                                         [txts[i]],
-                                        [btns[i+4*len(names)]],
-                                        [txts[i+len(names)]]
+                                        [btns[i+3*len(names)]],
+                                        [sg.Text("Set pos:")],  
+                                        [txts[i+len(names)]],
+                                        [sg.Text("Current pos:")],
+                                        [lbls[i]]
                                         ], element_justification='center'))
     return button_layout
 
@@ -172,10 +192,17 @@ def create_btn_layout_motor(names, btns, txts):
     for i in range(len(names)):
         button_layout.append(sg.Column([[sg.Text(names[i])], 
                                         [btns[i]], 
-                                        [btns[i+len(names)]], 
+                                        [btns[i+len(names)]],
+                                        [sg.Text("Vel:")], 
                                         [txts[i]]
                                         ], element_justification='center'))
     return button_layout
+
+def update_lbls(lbls):
+    global robot_data
+    for i in range(len(lbls)):
+        if "config" in robot_data:
+            lbls[i].update(int(robot_data["config"][i]))
 
 
 if __name__ == "__main__":
@@ -198,11 +225,12 @@ if __name__ == "__main__":
     all_btns_motors = create_btns_motor(motor_names)
     all_txts_joints = create_txts_joint(joint_names)
     all_txts_motors = create_txts_motor(motor_names)
+    all_lbls_joints = create_lbls_joint(joint_names)
 
     btn_init = sg.Button("INIT", size=7)
 
     # create layouts
-    button_layout_joints = create_btn_layout_joint(joint_names, all_btns_joints, all_txts_joints)
+    button_layout_joints = create_btn_layout_joint(joint_names, all_btns_joints, all_txts_joints, all_lbls_joints)
     button_layout_motors = create_btn_layout_motor(motor_names, all_btns_motors, all_txts_motors)
     
     
@@ -216,29 +244,41 @@ if __name__ == "__main__":
     btn_gripper_set = sg.Button("SET", size=15)
     txt_gripper = sg.Input(default_text="0", size=4)
 
+    container_btn_layout_joints = sg.Column([   [sg.HorizontalSeparator()],
+                                                [sg.Text("Joint control:", size=(60, 2), justification='center')], 
+                                                button_layout_joints,
+                                                [sg.HorizontalSeparator()]], element_justification='center')
+    
+    container_btn_layout_motors = sg.Column([   [sg.HorizontalSeparator()],
+                                                [sg.Text("Motor control:", size=(60, 2), justification='center')], 
+                                                button_layout_motors,
+                                                [sg.HorizontalSeparator()]], element_justification='center')
+
+    container_gripper_layout = sg.Column([      [sg.HorizontalSeparator()],
+                                                [sg.Text("Gripper control:", size=(60, 2), justification='center')], 
+                                                [btn_gripper_open, btn_gripper_close],
+                                                [sg.Text("Set position:"), txt_gripper, btn_gripper_set],
+                                                [sg.HorizontalSeparator()]], element_justification='center')
+
     
     layout = [  [sg.Text("Initialize all joints:")], 
                 [btn_init],
                 [sg.Text("Select the control mode:")], 
                 [radio_layout_mode],
-                [button_layout_joints],
-                [button_layout_motors],
+                [container_btn_layout_joints],
+                [container_btn_layout_motors],
                 [txt_custom],
                 [btn_send_coord],
                 [btn_save_zeros],
                 [btn_load_zeros],
-                [sg.Text("Gripper:")],
-                [btn_gripper_open, btn_gripper_close],
-                [txt_gripper, btn_gripper_set],
+                [container_gripper_layout],
                 ]
 
     # create the window
     window = sg.Window("StepperMotorControl", layout, margins=(50, 50), finalize=True)
     
-    for col in button_layout_joints:
-        col.hide_row() 
-    for col in button_layout_motors:
-        col.hide_row()
+    container_btn_layout_joints.hide_row()
+    container_btn_layout_motors.hide_row()
 
     for i in range(len(all_btns_joints)):
         all_btns_joints[i].bind("<ButtonPress-1>", joint_names[i%len(joint_names)] + "_press")
@@ -292,9 +332,7 @@ if __name__ == "__main__":
             i = 0
             for jo in joint_names:
                 if jo in event:
-                    if event[0] == "I":
-                        send_init_cmd(jo)
-                    elif event[0] == "Z":
+                    if event[0] == "Z":
                         send_zero_cmd(jo)
                     elif event[0] == "S":
                         send_set_pos_cmd(jo, all_txts_joints[i+len(joint_names)].get())
@@ -310,22 +348,16 @@ if __name__ == "__main__":
             send_end_cmd(dir)
         elif event == "AUTO":
             ser.write("SET_MODE_AUTO\n".encode())
-            for col in button_layout_joints:
-                col.hide_row()
-            for col in button_layout_motors:
-                col.hide_row()
+            container_btn_layout_joints.hide_row()
+            container_btn_layout_motors.hide_row()
         elif event == "JOINT":
             ser.write("SET_MODE_JOINT\n".encode())
-            for col in button_layout_joints:
-                col.unhide_row()
-            for col in button_layout_motors:
-                col.hide_row()
+            container_btn_layout_joints.unhide_row()
+            container_btn_layout_motors.hide_row()
         elif event == "MOTOR":
             ser.write("SET_MODE_MOTOR\n".encode())
-            for col in button_layout_joints:
-                col.hide_row()
-            for col in button_layout_motors:
-                col.unhide_row()
+            container_btn_layout_joints.hide_row()
+            container_btn_layout_motors.unhide_row()
         
 
         
