@@ -97,7 +97,7 @@ std::vector<float> Communication::extract_cmd_values(const char *cmd)
 
             // split value_str by ',' and save to array
             char *token = strtok(value_str, ",");
-            char *values_str[5];
+            char *values_str[15];
             int i = 0;
             while (token != NULL)
             {
@@ -153,7 +153,13 @@ void Communication::process_cmd(char *cmd)
             }
             else if (contains("_SET", cmd))
             {
-                m_robot->setJointPosition(joint, extract_cmd_values(cmd)[0]);
+                std::vector<float> values = extract_cmd_values(cmd);
+                if(values.size() > 1){
+                    m_robot->setJointPositionVelocity(joint, values[0], values[1]);
+                }
+                else{
+                    m_robot->setJointPosition(joint, values[0]);
+                }
             }
             else
             {
@@ -226,14 +232,24 @@ void Communication::process_cmd(char *cmd)
     else if (starts_with("COORD", cmd))
     {
         std::vector<float> pose = extract_cmd_values(cmd);
-        m_robot->moveToPose(pose);
+        m_robot->moveToPose(pose, 10);
         comm_func_write("COORD is set\n");
     }
     else if(starts_with("CONFIG", cmd))
     {
         std::vector<float> config = extract_cmd_values(cmd);
-        m_robot->moveToConfiguration(config);
+        m_robot->moveToConfiguration(config, 10);
         comm_func_write("CONFIG is set\n");
+    }
+    else if(starts_with("VEL_CONFIG", cmd))
+    {
+        std::vector<float> config_vel = extract_cmd_values(cmd);
+        if(config_vel.size() == 6){
+            float vel = config_vel[5];
+            config_vel.pop_back();
+            m_robot->moveToConfiguration(config_vel, vel);
+            comm_func_write("VEL_CONFIG is set\n");
+        }        
     }
     else if (starts_with("PID_J4", cmd))
     {

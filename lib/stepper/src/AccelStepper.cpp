@@ -26,12 +26,12 @@ void dump(uint8_t* p, int l)
 
 void AccelStepper::moveTo(long absolute)
 {
-    if (_targetPos != absolute)
-    {
+    //if (_targetPos != absolute)
+    //{
 	_targetPos = absolute;
 	computeNewSpeed();
 	// compute new n?
-    }
+    //}
 }
 
 void AccelStepper::move(long relative)

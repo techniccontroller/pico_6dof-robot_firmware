@@ -46,7 +46,7 @@ public:
 
     void initialize();
 
-    void moveToConfiguration(std::vector<float> config, float velocity = 0.1f);
+    void moveToConfiguration(std::vector<float> config, float velocity);
 
     void stepStepper(AccelStepper * stepper, AS5600 * encoder, JointControlState * state, float * setpoint_pos, float * setpoint_vel);
     std::vector<float> getConfiguration();

@@ -79,8 +79,9 @@
  * @brief constants for the robot
  * 
  */
-#define MAX_VEL_STEPPER 96.0f       // 3000 steps/s = 96 deg/s
+#define DEFAULT_VEL_STEPPER 30.0f       // 3000 steps/s = 96 deg/s
 #define MAX_VEL_DCMOTOR 200.0f      // PWM
+#define DEFAULT_ACC_STEPPER 5000.0f 
 
 #define INIT_VEL_STEPPER 3.2f       // 100 steps/s = 3.2 deg/s
 #define INIT_VEL_DCMOTOR 50.0f      // PWM

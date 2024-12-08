@@ -115,7 +115,7 @@ void JointController::stepStepper(AccelStepper * stepper, AS5600 * encoder, Join
     case POSITION_CONTROL:
         speed_steps = m_stepperConfiguration->angleDegToSteps(*setpoint_vel);
         stepper->setMaxSpeed(speed_steps);
-        stepper->setAcceleration(500.0);
+        stepper->setAcceleration(DEFAULT_ACC_STEPPER);
         setpoint_steps = m_stepperConfiguration->angleDegToSteps(*setpoint_pos);
         stepper->moveTo(setpoint_steps);
         break;
@@ -526,7 +526,7 @@ void JointController::setJ1Position(float position)
 {
     m_state_j1 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j1 = position;
-    m_setpoint_vel_j1 = MAX_VEL_STEPPER;
+    m_setpoint_vel_j1 = DEFAULT_VEL_STEPPER;
 }
 
 /**
@@ -538,7 +538,7 @@ void JointController::setJ2Position(float position)
 {
     m_state_j2 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j2 = position;
-    m_setpoint_vel_j2 = MAX_VEL_STEPPER;
+    m_setpoint_vel_j2 = DEFAULT_VEL_STEPPER;
 }
 
 /**
@@ -550,7 +550,7 @@ void JointController::setJ3Position(float position)
 {
     m_state_j3 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j3 = position;
-    m_setpoint_vel_j3 = MAX_VEL_STEPPER;
+    m_setpoint_vel_j3 = DEFAULT_VEL_STEPPER;
 }
 
 /**

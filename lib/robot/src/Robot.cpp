@@ -221,6 +221,7 @@ std::string Robot::getRobotDataAsJson()
     jsonObj["robot_data"]["encoder_status"] = {m_encoderJ2.getStatus(), m_encoderJ3.getStatus(),
                                   m_encoderJ4.getStatus(), m_encoderJ5.getStatus()};
     jsonObj["robot_data"]["diffAngleJ2J3"] = m_jointController.getDiffAngleJ2J3();
+    jsonObj["robot_data"]["speeds"] = {m_stepperM1.speed(), m_stepperM2.speed(), m_stepperM3.speed()};
     return jsonObj.dump();
 }
 

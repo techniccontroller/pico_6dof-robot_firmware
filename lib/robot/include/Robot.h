@@ -57,8 +57,8 @@ public:
     void setJointVelocity(int joint, float velocity);
     void setJointPositionVelocity(int joint, float position, float velocity);
 
-    void moveToConfiguration(std::vector<float> config, float velocity = 10);
-    void moveToPose(std::vector<float> pose, float velocity = 10);
+    void moveToConfiguration(std::vector<float> config, float velocity);
+    void moveToPose(std::vector<float> pose, float velocity);
 
     void openGripper();
     void closeGripper();
