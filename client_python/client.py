@@ -72,6 +72,30 @@ def thread_square(name):
         x = x_tmp
         y = y_tmp
         z = z_tmp
+
+def thread_demo(name):
+
+    global ser
+
+    print("Starting demo")
+
+    ser.write("VEL_CONFIG(0,0,0,0,0,30)\n".encode())
+    time.sleep(3)
+
+    ser.write("VEL_CONFIG(50,0,10,20,0,40)\n".encode())
+    time.sleep(2)
+
+    ser.write("VEL_CONFIG(0,0,-20,-40,0,40)\n".encode())
+    time.sleep(2)
+
+    ser.write("VEL_CONFIG(-50,0,10,20,0,40)\n".encode())
+    time.sleep(2)
+
+    ser.write("VEL_CONFIG(0,0,0,-90,0,20)\n".encode())
+
+    print("Demo finished")
+
+
         
 
 def send_start_cmd(joint_motor, dir, value):
@@ -243,13 +267,14 @@ if __name__ == "__main__":
     button_layout_motors = create_btn_layout_motor(motor_names, all_btns_motors, all_txts_motors)
     
     
-    txt_command = sg.Input(default_text="VEL_CONFIG(j1,j2,j3,j4,j5,spd)", size=20, tooltip="Possible commands: COORD(x,y,z), CONFIG(j1,j2,j3,j4,j5), VEL_CONFIG(j1,j2,j3,j4,j5,spd), PID_J4(p,i,d), PID_J5(p,i,d)")
+    txt_command = sg.Input(default_text="VEL_CONFIG(j1,j2,j3,j4,j5,spd)", size=30, tooltip="Possible commands: COORD(x,y,z), CONFIG(j1,j2,j3,j4,j5), VEL_CONFIG(j1,j2,j3,j4,j5,spd), PID_J4(p,i,d), PID_J5(p,i,d)")
     btn_send_command = sg.Button("SEND", size=7)
     btn_save_zeros = sg.Button("SAVE ZEROS", size=15)
     btn_load_zeros = sg.Button("LOAD ZEROS", size=15)
     btn_move_to_zero = sg.Button("MOVE TO ZERO", size=15, tooltip="Move all joints to zero position")
     btn_move_to_store = sg.Button("MOVE TO STORE", size=15, tooltip="Move all joints to stored position")
     btn_start_square = sg.Button("START SQUARE", size=15, tooltip="Start predefined square movement in task space")
+    btn_start_demo = sg.Button("START DEMO", size=15, tooltip="Start predefined demo movement in task space")
     btn_init_j2 = sg.Button("INIT J2", size=15, tooltip="Initialize joint 2 e.g. after power on")
     btn_init_j3 = sg.Button("INIT J3", size=15, tooltip="Initialize joint 3 e.g. after power on")
 
@@ -288,7 +313,7 @@ if __name__ == "__main__":
     container_default_configs_layout = sg.Column([ [sg.HorizontalSeparator()],
                                                     [sg.Text("Default configurations:", size=(60, 2), justification='center')], 
                                                     [btn_move_to_zero, btn_move_to_store, btn_start_square],
-                                                    [btn_init_j2, btn_init_j3]], element_justification='center')
+                                                    [btn_init_j2, btn_init_j3, btn_start_demo]], element_justification='center')
 
     layout = [  [container_status_layout],
                 [container_raw_command_layout], 
@@ -334,6 +359,10 @@ if __name__ == "__main__":
         
         if event == "START SQUARE":
             x = threading.Thread(target=thread_square, args=(1,), daemon=True)
+            x.start()
+        
+        if event == "START DEMO":
+            x = threading.Thread(target=thread_demo, args=(1,), daemon=True)
             x.start()
         
         elif event == "MOVE TO ZERO":
