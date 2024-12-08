@@ -108,8 +108,7 @@ int main()
         if((current_time - last_print_time > 2000))
         {
             std::string robotDataJson = robot.getRobotDataAsJson();
-            std::string topLevelJson = "{ \"robot_data\": " + robotDataJson + " }";
-            puts(topLevelJson.c_str());
+            puts(robotDataJson.c_str());
             last_print_time = current_time;
         }
 
