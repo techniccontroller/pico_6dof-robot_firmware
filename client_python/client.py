@@ -15,6 +15,7 @@ active_joint_motor = ""
 
 robot_data = dict()
 all_lbls_joints = []
+lbl_current_pose = sg.Text("Current pose:")
 
 def thread_function(name):
     """A thread which only handles the incoming data from Pico and outputs it to console
@@ -22,7 +23,7 @@ def thread_function(name):
     Args:
         name (string): name of thread (currently not used)
     """
-    global stop_threads, ser, robot_data, all_lbls_joints
+    global stop_threads, ser, robot_data
     while not stop_threads:
         while ser.in_waiting:
             try:
@@ -34,7 +35,7 @@ def thread_function(name):
                         json_data = json.loads(data_in)
                         if "robot_data" in json_data:
                             robot_data = json_data["robot_data"]
-                            update_lbls(all_lbls_joints)
+                            update_lbls()
                     except json.JSONDecodeError:
                         print("Error decoding JSON data")
             except UnicodeDecodeError:
@@ -198,11 +199,20 @@ def create_btn_layout_motor(names, btns, txts):
                                         ], element_justification='center'))
     return button_layout
 
-def update_lbls(lbls):
-    global robot_data
-    for i in range(len(lbls)):
+def update_lbls():
+    global robot_data, all_lbls_joints, lbl_current_pose
+    for i in range(len(all_lbls_joints)):
         if "config" in robot_data:
-            lbls[i].update(int(robot_data["config"][i]))
+            all_lbls_joints[i].update(int(robot_data["config"][i]))
+    
+    if "pose" in robot_data and "config" in robot_data:
+        pose = robot_data["pose"]
+        pose = [round(elem, 2) for elem in pose]
+        config = robot_data["config"]
+        config = [int(elem) for elem in config]
+        lbl_current_pose.update("Current pose [m]: " + str(pose) + "\nCurrent config [deg]: " + str(config))
+    else:
+        lbl_current_pose.update("Current pose: - \n Current config: -")  
 
 
 if __name__ == "__main__":
@@ -227,22 +237,29 @@ if __name__ == "__main__":
     all_txts_motors = create_txts_motor(motor_names)
     all_lbls_joints = create_lbls_joint(joint_names)
 
-    btn_init = sg.Button("INIT", size=7)
-
     # create layouts
     button_layout_joints = create_btn_layout_joint(joint_names, all_btns_joints, all_txts_joints, all_lbls_joints)
     button_layout_motors = create_btn_layout_motor(motor_names, all_btns_motors, all_txts_motors)
     
     
-
-    txt_custom = sg.Input(default_text="0,0,0", size=20)
-    btn_send_coord = sg.Button("SEND", size=7)
+    txt_command = sg.Input(default_text="CONFIG(j1,j2,j3,j4,j5)", size=20, tooltip="Possible commands: COORD(x,y,z), CONFIG(j1,j2,j3,j4,j5), PID_J4(p,i,d), PID_J5(p,i,d)")
+    btn_send_command = sg.Button("SEND", size=7)
     btn_save_zeros = sg.Button("SAVE ZEROS", size=15)
     btn_load_zeros = sg.Button("LOAD ZEROS", size=15)
+    btn_move_to_zero = sg.Button("MOVE TO ZERO", size=15, tooltip="Move all joints to zero position")
+    btn_move_to_store = sg.Button("MOVE TO STORE", size=15, tooltip="Move all joints to stored position")
+    btn_start_square = sg.Button("START SQUARE", size=15, tooltip="Start predefined square movement in task space")
+    btn_init_j2 = sg.Button("INIT J2", size=15, tooltip="Initialize joint 2 e.g. after power on")
+    btn_init_j3 = sg.Button("INIT J3", size=15, tooltip="Initialize joint 3 e.g. after power on")
+
     btn_gripper_open = sg.Button("OPEN", size=15)
     btn_gripper_close = sg.Button("CLOSE", size=15)
     btn_gripper_set = sg.Button("SET", size=15)
-    txt_gripper = sg.Input(default_text="0", size=4)
+    txt_gripper = sg.Input(default_text="0", size=4, tooltip="Set gripper position [10-140]")
+
+    container_status_layout = sg.Column([       [sg.HorizontalSeparator()],
+                                                [sg.Text("Status:", size=(60, 2), justification='center')], 
+                                                [lbl_current_pose]], element_justification='center')
 
     container_btn_layout_joints = sg.Column([   [sg.HorizontalSeparator()],
                                                 [sg.Text("Joint control:", size=(60, 2), justification='center')], 
@@ -257,21 +274,30 @@ if __name__ == "__main__":
     container_gripper_layout = sg.Column([      [sg.HorizontalSeparator()],
                                                 [sg.Text("Gripper control:", size=(60, 2), justification='center')], 
                                                 [btn_gripper_open, btn_gripper_close],
-                                                [sg.Text("Set position:"), txt_gripper, btn_gripper_set],
-                                                [sg.HorizontalSeparator()]], element_justification='center')
+                                                [sg.Text("Set position:"), txt_gripper, btn_gripper_set]], element_justification='center')
 
-    
-    layout = [  [sg.Text("Initialize all joints:")], 
-                [btn_init],
+    container_raw_command_layout = sg.Column([ [sg.HorizontalSeparator()],
+                                                [sg.Text("Send raw command:", size=(60, 2), justification='center')], 
+                                                [txt_command, btn_send_command]], element_justification='center')
+
+    container_zeros_layout = sg.Column([        [sg.HorizontalSeparator()],
+                                                [sg.Text("Calibration of Encoders:", size=(60, 2), justification='center')], 
+                                                [btn_save_zeros, btn_load_zeros]], element_justification='center')
+
+    container_default_configs_layout = sg.Column([ [sg.HorizontalSeparator()],
+                                                    [sg.Text("Default configurations:", size=(60, 2), justification='center')], 
+                                                    [btn_move_to_zero, btn_move_to_store, btn_start_square],
+                                                    [btn_init_j2, btn_init_j3]], element_justification='center')
+
+    layout = [  [container_status_layout],
+                [container_raw_command_layout], 
+                [container_zeros_layout],
+                [container_gripper_layout],
+                [container_default_configs_layout],
                 [sg.Text("Select the control mode:")], 
                 [radio_layout_mode],
                 [container_btn_layout_joints],
                 [container_btn_layout_motors],
-                [txt_custom],
-                [btn_send_coord],
-                [btn_save_zeros],
-                [btn_load_zeros],
-                [container_gripper_layout],
                 ]
 
     # create the window
@@ -305,13 +331,25 @@ if __name__ == "__main__":
         else: 
             dir = "FORWARD"
         
-        if event == "INIT":
+        if event == "START SQUARE":
             x = threading.Thread(target=thread_square, args=(1,), daemon=True)
             x.start()
         
+        elif event == "MOVE TO ZERO":
+            ser.write("CONFIG(0,0,0,0,0)\n".encode())
+
+        elif event == "MOVE TO STORE":
+            ser.write("CONFIG(0,-51,-4,-90,0)\n".encode())
+        
+        elif event == "INIT J2":
+            send_init_cmd("J2")
+        
+        elif event == "INIT J3":
+            send_init_cmd("J3")
+        
         elif event == "SEND":
             #ser.write(("COORD(" + txt_coord.get() + ")\n").encode())
-            ser.write((txt_custom.get() + "\n").encode())
+            ser.write((txt_command.get() + "\n").encode())
         
         elif event == "SAVE ZEROS":
             ser.write(("SAVE_ZEROS\n").encode())
