@@ -86,16 +86,17 @@ def send_start_cmd(joint_motor, dir, value):
     active_joint_motor = joint_motor
     ser.write(("CMD_" + joint_motor + "_" + dir + "_START(" + str(int(value)) + ")\n").encode()) 
 
-def send_set_pos_cmd(joint_motor, value):
+def send_set_pos_cmd(joint_motor, pos, speed=10):
     """Send a set position command to Pico for given joint or motor
 
     Args:
         joint_motor (string): joint or motor to be controlled (J1, J2, M1, M2, ...)
-        value (number): position
+        pos (number): position
+        speed (number, optional): speed. Defaults to 10.
     """
     global active_joint_motor
     active_joint_motor = joint_motor
-    ser.write(("CMD_" + joint_motor + "_SET(" + str(float(value)) + ")\n").encode()) 
+    ser.write(("CMD_" + joint_motor + "_SET(" + str(float(pos)) + "," + str(float(speed)) + ")\n").encode()) 
 
 def send_end_cmd(dir):
     """Send a end command to Pico for the currently active joint or motor
@@ -242,7 +243,7 @@ if __name__ == "__main__":
     button_layout_motors = create_btn_layout_motor(motor_names, all_btns_motors, all_txts_motors)
     
     
-    txt_command = sg.Input(default_text="CONFIG(j1,j2,j3,j4,j5)", size=20, tooltip="Possible commands: COORD(x,y,z), CONFIG(j1,j2,j3,j4,j5), PID_J4(p,i,d), PID_J5(p,i,d)")
+    txt_command = sg.Input(default_text="VEL_CONFIG(j1,j2,j3,j4,j5,spd)", size=20, tooltip="Possible commands: COORD(x,y,z), CONFIG(j1,j2,j3,j4,j5), VEL_CONFIG(j1,j2,j3,j4,j5,spd), PID_J4(p,i,d), PID_J5(p,i,d)")
     btn_send_command = sg.Button("SEND", size=7)
     btn_save_zeros = sg.Button("SAVE ZEROS", size=15)
     btn_load_zeros = sg.Button("LOAD ZEROS", size=15)
@@ -373,7 +374,9 @@ if __name__ == "__main__":
                     if event[0] == "Z":
                         send_zero_cmd(jo)
                     elif event[0] == "S":
-                        send_set_pos_cmd(jo, all_txts_joints[i+len(joint_names)].get())
+                        pos = all_txts_joints[i+len(joint_names)].get()
+                        speed = all_txts_joints[i].get()
+                        send_set_pos_cmd(jo, pos, speed)
                     else:
                         send_start_cmd(jo, dir, all_txts_joints[i].get())
                 i = i + 1
