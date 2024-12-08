@@ -170,13 +170,22 @@ void JointController::checkJointLimitsJ2J3(){
     float angleDiff = inv_angle_J2 - angle_J3;
     if(abs(angleDiff) > LIMIT_J2_J3_DIFF_MAX){
         // warning - robot reached the max limit between J2 and J3
-        m_state_j2 = JointControlState::DISABLED;
-        m_state_j3 = JointControlState::DISABLED;
+
+        if(m_stepper2->speed() > 0){
+            m_state_j2 = JointControlState::DISABLED;
+        }
+        if(m_stepper3->speed() > 0){
+            m_state_j3 = JointControlState::DISABLED;
+        }
     }
     else if(abs(angleDiff) < LIMIT_J2_J3_DIFF_MIN){
         // warning - robot reached the min limit between J2 and J3
-        m_state_j2 = JointControlState::DISABLED;
-        m_state_j3 = JointControlState::DISABLED;
+        if(m_stepper2->speed() < 0){
+            m_state_j2 = JointControlState::DISABLED;
+        }
+        if(m_stepper3->speed() < 0){
+            m_state_j3 = JointControlState::DISABLED;
+        }
     }
     if(angle_J3 < LIMIT_J3_MIN){
         // warning - robot reached a the limit of J3
