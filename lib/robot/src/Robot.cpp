@@ -5,6 +5,26 @@
 #include <string>
 #include <cstdio>
 
+namespace
+{
+void roundJsonFloatsToThreeDecimals(nlohmann::json& value)
+{
+    if (value.is_number_float())
+    {
+        value = round(value.get<double>() * 1000.0) / 1000.0;
+        return;
+    }
+
+    if (value.is_array() || value.is_object())
+    {
+        for (auto& child : value)
+        {
+            roundJsonFloatsToThreeDecimals(child);
+        }
+    }
+}
+}
+
 
 Robot::Robot(void): 
     m_encoderJ2(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 7, TCAADDR), 
@@ -222,6 +242,7 @@ std::string Robot::getRobotDataAsJson()
                                   m_encoderJ4.getStatus(), m_encoderJ5.getStatus()};
     jsonObj["robot_data"]["diffAngleJ2J3"] = m_jointController.getDiffAngleJ2J3();
     jsonObj["robot_data"]["speeds"] = {m_stepperM1.speed(), m_stepperM2.speed(), m_stepperM3.speed()};
+    roundJsonFloatsToThreeDecimals(jsonObj);
     return jsonObj.dump();
 }
 
