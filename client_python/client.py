@@ -299,7 +299,7 @@ if __name__ == "__main__":
     button_layout_motors = create_btn_layout_motor(motor_names, all_btns_motors, all_txts_motors)
     
     
-    txt_command = sg.Input(default_text="VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd)", size=35, tooltip="Possible commands: COORD(x,y,z), CONFIG(j1,j2,j3,j4,j5,j6), VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd), PID_J4(p,i,d), PID_J5(p,i,d), PID_J6(p,i,d)")
+    txt_command = sg.Input(default_text="VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd)", size=35, tooltip="Possible commands: COORD(x,y,z), CONFIG(j1,j2,j3,j4,j5,j6), VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd), PID_J4(p,i,d), PID_J5(p,i,d), PID_J6(p,i,d), MIX_J56(j5_m5,j5_m6,j6_m5,j6_m6)")
     btn_send_command = sg.Button("SEND", size=7)
     btn_save_zeros = sg.Button("SAVE ZEROS", size=15)
     btn_load_zeros = sg.Button("LOAD ZEROS", size=15)

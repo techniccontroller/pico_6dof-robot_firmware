@@ -73,6 +73,8 @@ public:
     std::string getRobotDataAsJson();
 
     void setPID(int joint, float p, float i, float d);
+    void setJ5J6Mixing(float j5ToM5, float j5ToM6,
+                       float j6ToM5, float j6ToM6);
 
 private:
     RobotMode mode = RobotMode::AUTO;     /**< Current mode of the robot. */

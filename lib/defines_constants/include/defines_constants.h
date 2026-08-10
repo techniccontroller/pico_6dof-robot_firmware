@@ -75,8 +75,8 @@
 #define EEPROM_SIZE 512
 #define EEPROM_ADDR_ENCJ2 0
 #define EEPROM_ADDR_ENCJ3 4
-#define EEPROM_ADDR_ENCJ5 8
-#define EEPROM_ADDR_ENCJ6 12
+#define EEPROM_ADDR_ENCJ5 12 // J5/J6 logical axes swapped; retain each physical encoder's saved zero
+#define EEPROM_ADDR_ENCJ6 8
 #define EEPROM_ADDR_ENCJ4 16
 
 
@@ -90,6 +90,25 @@
 
 #define INIT_VEL_STEPPER 3.2f       // 100 steps/s = 3.2 deg/s
 #define INIT_VEL_DCMOTOR 50.0f      // PWM
+#define DCMOTOR_POSITION_TOLERANCE_DEG 0.50f
+#define DCMOTOR_POSITION_REENGAGE_DEG 1.50f
+#define DCMOTOR_MAX_PWM 255.0f
+#define DCMOTOR_INTEGRAL_OUTPUT_LIMIT 50.0f
+#define DCMOTOR_DERIVATIVE_FILTER_ALPHA 0.15f
+
+// Calibratable differential-wrist plant inverse after swapping logical J5/J6.
+// [M5]   [ J5_TO_M5  J6_TO_M5 ] [J5 command]
+// [M6] = [ J5_TO_M6  J6_TO_M6 ] [J6 command]
+#define J5_TO_M5_COEFFICIENT 1.0f
+#define J5_TO_M6_COEFFICIENT -1.0f
+#define J6_TO_M5_COEFFICIENT -1.0f
+#define J6_TO_M6_COEFFICIENT -1.0f
+
+// These can be calibrated independently for unequal motors and directions.
+#define MOTOR5_MIN_PWM_POSITIVE 20.0f
+#define MOTOR5_MIN_PWM_NEGATIVE 20.0f
+#define MOTOR6_MIN_PWM_POSITIVE 20.0f
+#define MOTOR6_MIN_PWM_NEGATIVE 20.0f
 #define DEFAULT_VEL_CONTINUOUS_SERVO 50.0f // Offset from neutral servo command
 #define MAX_VEL_CONTINUOUS_SERVO 80.0f     // Offset from neutral servo command
 #define J4_POSITION_TOLERANCE_DEG 0.18f    // About two AS5600 counts; suppresses encoder chatter
@@ -111,10 +130,10 @@
 #define LIMIT_J2_MAX 110.0f
 #define LIMIT_J3_MIN -120.0f
 #define LIMIT_J3_MAX 10.0f
-#define LIMIT_J5_MIN -160.0f
-#define LIMIT_J5_MAX 60.0f
-#define LIMIT_J6_MIN -60.0f
-#define LIMIT_J6_MAX 160.0f
+#define LIMIT_J5_MIN -60.0f
+#define LIMIT_J5_MAX 160.0f
+#define LIMIT_J6_MIN -160.0f
+#define LIMIT_J6_MAX 60.0f
 #define LIMIT_J2_J3_DIFF_MIN -5.0f
 #define LIMIT_J2_J3_DIFF_MAX 108.0f
 

@@ -30,8 +30,8 @@ Robot::Robot(void):
     m_encoderJ2(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 7, TCAADDR), 
     m_encoderJ3(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 6, TCAADDR),
     m_encoderJ4(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 5, TCAADDR),
-    m_encoderJ5(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 3, TCAADDR),
-    m_encoderJ6(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 4, TCAADDR),
+    m_encoderJ5(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 4, TCAADDR),
+    m_encoderJ6(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 3, TCAADDR),
     m_stepperM1(AccelStepper::DRIVER, MOTOR1_STEP_PIN, MOTOR1_DIR_PIN),
     m_stepperM2(AccelStepper::DRIVER, MOTOR2_STEP_PIN, MOTOR2_DIR_PIN),
     m_stepperM3(AccelStepper::DRIVER, MOTOR3_STEP_PIN, MOTOR3_DIR_PIN),
@@ -276,6 +276,13 @@ void Robot::setPID(int joint, float p, float i, float d)
         m_jointController.setJ6PID(p, i, d);
         break;
     }
+}
+
+void Robot::setJ5J6Mixing(
+    float j5ToM5, float j5ToM6, float j6ToM5, float j6ToM6)
+{
+    m_jointController.setJ5J6Mixing(
+        j5ToM5, j5ToM6, j6ToM5, j6ToM6);
 }
 
 /**

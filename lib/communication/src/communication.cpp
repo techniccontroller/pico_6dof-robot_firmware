@@ -295,6 +295,18 @@ void Communication::process_cmd(char *cmd)
             comm_func_write(str_buffer);
         }
     }
+    else if (starts_with("MIX_J56", cmd))
+    {
+        std::vector<float> values = extract_cmd_values(cmd);
+        if(values.size() == 4){
+            m_robot->setJ5J6Mixing(
+                values[0], values[1], values[2], values[3]);
+            comm_func_write("J5/J6 mixing matrix set\n");
+        }
+        else{
+            comm_func_write("MIX_J56 requires 4 values\n");
+        }
+    }
     else if(starts_with("SAVE_ZEROS", cmd))
     {
         m_robot->writeAllSensorCalibrationData();

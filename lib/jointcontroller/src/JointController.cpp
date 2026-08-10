@@ -230,71 +230,129 @@ float JointController::getDiffAngleJ2J3(){
 }
 
 /**
- * @brief Performs a single step of the joint controller for a single DC motor (either motor5 or motor6)
- * 
- * @param motor     The DC motor of the joint to control
- * @param encoder   The encoder to read the current position from
- * @param state     The current state of the joint to control
- * @param pid_p     The proportional gain of the PID controller
- * @param pid_i     The integral gain of the PID controller
- * @param pid_d     The derivative gain of the PID controller
- * @param setpoint_pos  The current position setpoint of the joint to control [deg]
- * @param setpoint_vel  The current velocity setpoint of the joint to control [PWM]
- * @param speed_m5  The output speed of the motor5 [PWM] (as return value)
- * @param speed_m6  The output speed of the motor6 [PWM] (as return value)
+ * @brief Calculate one logical joint command for the coupled J5/J6 drive.
+ *
+ * J5 and J6 have separate controller histories. Their logical commands are
+ * mixed into physical M5/M6 outputs only after both controllers have run.
  */
-void JointController::stepDCMotor(DCMotor * motor, AS5600 * encoder, JointControlState * state, float pid_p, float pid_i, float pid_d, float * setpoint_pos, float * setpoint_vel, float * speed_m5, float * speed_m6){
-    
-    float angle = 0;
-    float speed = 0;
-
-    switch (*state)
-    {
-    case DISABLED:
-        *speed_m5 = 0;
-        *speed_m6 = 0;
-        break;
-    case INITIALIZATION:
-        *state = JointControlState::POSITION_CONTROL;
-        *setpoint_pos = 0;
-        *setpoint_vel = INIT_VEL_DCMOTOR;
-        break;
-    case POSITION_CONTROL:
-
-        angle = encoder->getCorrectedAngleDeg();
-
-        if(angle > 180){
-            angle = angle - 360;
-        }
-
-        if(encoder != NULL){
-            // PID controller
-            float diff = *setpoint_pos - angle;
-            float p = pid_p;
-            float i = pid_i;
-            float d = pid_d;
-            float dt = 0.01;
-            static float integral = 0;
-            static float derivative = 0;
-            static float prev_diff = 0;
-            integral = integral + diff * dt;
-            derivative = (diff - prev_diff) / dt;
-            prev_diff = diff;
-            speed = p * diff + i * integral + d * derivative;
-            speed = std::clamp(speed, -*setpoint_vel, *setpoint_vel);
-            speed = std::clamp(speed, -MAX_VEL_DCMOTOR, MAX_VEL_DCMOTOR);
-            *speed_m5 = -speed;
-            *speed_m6 = -speed;
-        }
-        else {
-            *state = JointControlState::DISABLED;
-        }
-        break;
-    case VELOCITY_CONTROL:
-        *speed_m5 = *setpoint_vel;
-        *speed_m6 = *setpoint_vel;
-        break;
+float JointController::stepDCJoint(
+    AS5600 *encoder, JointControlState *state,
+    float pid_p, float pid_i, float pid_d,
+    float *setpoint_pos, float *setpoint_vel,
+    float *integral, float *previous_error, float *filtered_derivative,
+    bool *previous_error_valid, bool *position_complete)
+{
+    if(*state == JointControlState::DISABLED){
+        *integral = 0.0f;
+        *previous_error = 0.0f;
+        *filtered_derivative = 0.0f;
+        *previous_error_valid = false;
+        return 0.0f;
     }
+
+    if(*state == JointControlState::INITIALIZATION){
+        *state = JointControlState::POSITION_CONTROL;
+        *setpoint_pos = 0.0f;
+        *setpoint_vel = INIT_VEL_DCMOTOR;
+        *integral = 0.0f;
+        *previous_error = 0.0f;
+        *filtered_derivative = 0.0f;
+        *previous_error_valid = false;
+        *position_complete = false;
+        return 0.0f;
+    }
+
+    if(*state == JointControlState::VELOCITY_CONTROL){
+        *position_complete = false;
+        *filtered_derivative = 0.0f;
+        *previous_error_valid = false;
+        return std::clamp(
+            *setpoint_vel, -MAX_VEL_DCMOTOR, MAX_VEL_DCMOTOR);
+    }
+
+    if(encoder == NULL){
+        *state = JointControlState::DISABLED;
+        *previous_error_valid = false;
+        return 0.0f;
+    }
+
+    float angle = encoder->getCorrectedAngleDeg();
+    if(angle > 180.0f){
+        angle -= 360.0f;
+    }
+
+    float error = *setpoint_pos - angle;
+    while(error > 180.0f) error -= 360.0f;
+    while(error < -180.0f) error += 360.0f;
+
+    constexpr float dt = 0.01f;
+    if(*position_complete){
+        if(std::fabs(error) < DCMOTOR_POSITION_REENGAGE_DEG){
+            *integral = 0.0f;
+            *filtered_derivative = 0.0f;
+            *previous_error = error;
+            *previous_error_valid = true;
+            return 0.0f;
+        }
+
+        // Only a real displacement can re-arm a completed worm-drive move.
+        *position_complete = false;
+        *integral = 0.0f;
+        *filtered_derivative = 0.0f;
+        *previous_error_valid = false;
+    }
+
+    bool crossedTarget = *previous_error_valid
+                      && ((*previous_error > 0.0f && error < 0.0f)
+                       || (*previous_error < 0.0f && error > 0.0f));
+    if(std::fabs(error) <= DCMOTOR_POSITION_TOLERANCE_DEG || crossedTarget){
+        *position_complete = true;
+        *integral = 0.0f;
+        *previous_error = error;
+        *filtered_derivative = 0.0f;
+        *previous_error_valid = true;
+        return 0.0f;
+    }
+
+    *integral += error * dt;
+    if(pid_i > 0.0f){
+        float integralLimit = DCMOTOR_INTEGRAL_OUTPUT_LIMIT / pid_i;
+        *integral = std::clamp(*integral, -integralLimit, integralLimit);
+    }
+    else{
+        *integral = 0.0f;
+    }
+
+    if(!*previous_error_valid){
+        *filtered_derivative = 0.0f;
+    }
+    float rawDerivative = *previous_error_valid
+                        ? (error - *previous_error) / dt
+                        : 0.0f;
+    *previous_error = error;
+    *previous_error_valid = true;
+    *filtered_derivative += DCMOTOR_DERIVATIVE_FILTER_ALPHA
+                          * (rawDerivative - *filtered_derivative);
+    float command = pid_p * error
+                  + pid_i * *integral
+                  + pid_d * *filtered_derivative;
+    float commandLimit = std::clamp(
+        std::fabs(*setpoint_vel), 0.0f, MAX_VEL_DCMOTOR);
+    return std::clamp(command, -commandLimit, commandLimit);
+}
+
+float JointController::compensateDCMotorDeadZone(
+    float command, float positiveMinimum, float negativeMinimum)
+{
+    float magnitude = std::fabs(command);
+    if(magnitude < 0.001f){
+        return 0.0f;
+    }
+    float minimum = command > 0.0f ? positiveMinimum : negativeMinimum;
+    if(magnitude < minimum){
+        return std::copysign(minimum, command);
+    }
+    return command;
 }
 
 /**
@@ -303,15 +361,15 @@ void JointController::stepDCMotor(DCMotor * motor, AS5600 * encoder, JointContro
  * @return true     If the joint limit is reached
  * @return false    If the joint limit is not reached
  */
-bool JointController::isJointLimitReachedJ5(float speed_m5_j5){
-    float angle = m_encoder5->readAngleDeg();
+bool JointController::isJointLimitReachedJ5(float jointCommand){
+    float angle = m_encoder5->getCorrectedAngleDeg();
     if(angle > 180){
         angle = angle - 360;
     }
-    if(angle < LIMIT_J5_MIN && speed_m5_j5 > 0){
+    if(angle < LIMIT_J5_MIN && jointCommand < 0){
         return true;
     }
-    else if(angle > LIMIT_J5_MAX && speed_m5_j5 < 0){
+    else if(angle > LIMIT_J5_MAX && jointCommand > 0){
         return true;
     }
     return false;
@@ -323,15 +381,15 @@ bool JointController::isJointLimitReachedJ5(float speed_m5_j5){
  * @return true     If the joint limit is reached
  * @return false    If the joint limit is not reached
  */
-bool JointController::isJointLimitReachedJ6(float speed_m6_j6){
-    float angle = m_encoder6->readAngleDeg();
+bool JointController::isJointLimitReachedJ6(float jointCommand){
+    float angle = m_encoder6->getCorrectedAngleDeg();
     if(angle > 180){
         angle = angle - 360;
     }
-    if(angle < LIMIT_J6_MIN && speed_m6_j6 > 0){
+    if(angle < LIMIT_J6_MIN && jointCommand < 0){
         return true;
     }
-    else if(angle > LIMIT_J6_MAX && speed_m6_j6 < 0){
+    else if(angle > LIMIT_J6_MAX && jointCommand > 0){
         return true;
     }
     return false;
@@ -381,23 +439,63 @@ void JointController::step()
     stepStepper(m_stepper3, m_encoder3, &m_state_j3, &m_setpoint_pos_j3, &m_setpoint_vel_j3);
     stepContinuousServo();
 
-    float speed_m5_j5 = 0;
-    float speed_m5_j6 = 0;
-    float speed_m6_j5 = 0;
-    float speed_m6_j6 = 0;
+    float jointCommandJ5 = stepDCJoint(
+        m_encoder5, &m_state_j5,
+        pid_p_j5, pid_i_j5, pid_d_j5,
+        &m_setpoint_pos_j5, &m_setpoint_vel_j5,
+        &pid_integral_j5, &pid_previous_error_j5,
+        &pid_filtered_derivative_j5,
+        &pid_previous_error_valid_j5,
+        &m_j5_position_complete);
+    float jointCommandJ6 = stepDCJoint(
+        m_encoder6, &m_state_j6,
+        pid_p_j6, pid_i_j6, pid_d_j6,
+        &m_setpoint_pos_j6, &m_setpoint_vel_j6,
+        &pid_integral_j6, &pid_previous_error_j6,
+        &pid_filtered_derivative_j6,
+        &pid_previous_error_valid_j6,
+        &m_j6_position_complete);
 
-    stepDCMotor(m_motor5, m_encoder5, &m_state_j5, pid_p_j5, pid_i_j5, pid_d_j5, &m_setpoint_pos_j5, &m_setpoint_vel_j5, &speed_m5_j5, &speed_m6_j5);
-    if(encodersValid && isJointLimitReachedJ5(speed_m5_j5)){
-        speed_m5_j5 = 0;
-        speed_m6_j5 = 0;
+    if(encodersValid && isJointLimitReachedJ5(jointCommandJ5)){
+        jointCommandJ5 = 0.0f;
+        pid_integral_j5 = 0.0f;
+        pid_previous_error_valid_j5 = false;
     }
-    stepDCMotor(m_motor6, m_encoder6, &m_state_j6, pid_p_j6, pid_i_j6, pid_d_j6, &m_setpoint_pos_j6, &m_setpoint_vel_j6, &speed_m5_j6, &speed_m6_j6);
-    if(encodersValid && isJointLimitReachedJ6(speed_m6_j6)){
-        speed_m5_j6 = 0;
-        speed_m6_j6 = 0;
+    if(encodersValid && isJointLimitReachedJ6(jointCommandJ6)){
+        jointCommandJ6 = 0.0f;
+        pid_integral_j6 = 0.0f;
+        pid_previous_error_valid_j6 = false;
     }
-    m_motor5->setSpeed(speed_m5_j5 + speed_m5_j6);
-    m_motor6->setSpeed(speed_m6_j5 - speed_m6_j6);
+
+    // Calibratable 2x2 inverse plant model. Unlike two ad-hoc motor sums, this
+    // expresses how each logical joint must drive both physical motors.
+    float motorCommandM5 = m_j5_to_m5 * jointCommandJ5
+                         + m_j6_to_m5 * jointCommandJ6;
+    float motorCommandM6 = m_j5_to_m6 * jointCommandJ5
+                         + m_j6_to_m6 * jointCommandJ6;
+    motorCommandM5 = compensateDCMotorDeadZone(
+        motorCommandM5,
+        MOTOR5_MIN_PWM_POSITIVE,
+        MOTOR5_MIN_PWM_NEGATIVE);
+    motorCommandM6 = compensateDCMotorDeadZone(
+        motorCommandM6,
+        MOTOR6_MIN_PWM_POSITIVE,
+        MOTOR6_MIN_PWM_NEGATIVE);
+
+    float largestMotorCommand = std::max(
+        std::fabs(motorCommandM5), std::fabs(motorCommandM6));
+    if(largestMotorCommand > DCMOTOR_MAX_PWM){
+        float scale = DCMOTOR_MAX_PWM / largestMotorCommand;
+        motorCommandM5 *= scale;
+        motorCommandM6 *= scale;
+        // Common anti-windup: neither joint integrator may continue growing
+        // while the coupled actuator pair cannot deliver the requested vector.
+        pid_integral_j5 *= scale;
+        pid_integral_j6 *= scale;
+    }
+
+    m_motor5->setSpeed(motorCommandM5);
+    m_motor6->setSpeed(motorCommandM6);
 }
 
 /**
@@ -474,10 +572,22 @@ void JointController::reset()
     m_state_j4 = JointControlState::DISABLED;
     m_state_j5 = JointControlState::DISABLED;
     m_state_j6 = JointControlState::DISABLED;
+    pid_integral_j5 = 0.0f;
+    pid_previous_error_valid_j5 = false;
+    m_j5_position_complete = false;
+    pid_integral_j6 = 0.0f;
+    pid_previous_error_valid_j6 = false;
+    m_j6_position_complete = false;
     m_j4_latched_hold_mode = false;
     resetJ4ControlHistory();
     if(m_motor4 != NULL){
         m_motor4->stop();
+    }
+    if(m_motor5 != NULL){
+        m_motor5->setSpeed(0.0f);
+    }
+    if(m_motor6 != NULL){
+        m_motor6->setSpeed(0.0f);
     }
 }
 
@@ -504,11 +614,17 @@ void JointController::initializeJ4()
 void JointController::initializeJ5()
 {
     m_state_j5 = JointControlState::INITIALIZATION;
+    pid_integral_j5 = 0.0f;
+    pid_previous_error_valid_j5 = false;
+    m_j5_position_complete = false;
 }
 
 void JointController::initializeJ6()
 {
     m_state_j6 = JointControlState::INITIALIZATION;
+    pid_integral_j6 = 0.0f;
+    pid_previous_error_valid_j6 = false;
+    m_j6_position_complete = false;
 }
 
 void JointController::zeroJ1()
@@ -723,6 +839,10 @@ void JointController::zeroJ5()
     if(m_encoder5 != NULL){
         m_encoder5->setZero();
     }
+    m_setpoint_pos_j5 = 0.0f;
+    pid_integral_j5 = 0.0f;
+    pid_previous_error_valid_j5 = false;
+    m_j5_position_complete = true;
 }
 
 void JointController::zeroJ6()
@@ -730,6 +850,10 @@ void JointController::zeroJ6()
     if(m_encoder6 != NULL){
         m_encoder6->setZero();
     }
+    m_setpoint_pos_j6 = 0.0f;
+    pid_integral_j6 = 0.0f;
+    pid_previous_error_valid_j6 = false;
+    m_j6_position_complete = true;
 }
 
 /**
@@ -790,6 +914,9 @@ void JointController::setJ5Position(float position)
     m_state_j5 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j5 = position;
     m_setpoint_vel_j5 = MAX_VEL_DCMOTOR;
+    pid_integral_j5 = 0.0f;
+    pid_previous_error_valid_j5 = false;
+    m_j5_position_complete = false;
 }
 
 /**
@@ -802,6 +929,9 @@ void JointController::setJ6Position(float position)
     m_state_j6 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j6 = position;
     m_setpoint_vel_j6 = MAX_VEL_DCMOTOR;
+    pid_integral_j6 = 0.0f;
+    pid_previous_error_valid_j6 = false;
+    m_j6_position_complete = false;
 }
 
 /**
@@ -874,6 +1004,9 @@ void JointController::setJ5Velocity(float velocity)
 {
     m_state_j5 = JointControlState::VELOCITY_CONTROL;
     m_setpoint_vel_j5 = velocity;
+    pid_integral_j5 = 0.0f;
+    pid_previous_error_valid_j5 = false;
+    m_j5_position_complete = false;
 }
 
 /**
@@ -885,6 +1018,9 @@ void JointController::setJ6Velocity(float velocity)
 {
     m_state_j6 = JointControlState::VELOCITY_CONTROL;
     m_setpoint_vel_j6 = velocity;
+    pid_integral_j6 = 0.0f;
+    pid_previous_error_valid_j6 = false;
+    m_j6_position_complete = false;
 }
 
 /**
@@ -948,7 +1084,10 @@ void JointController::setJ5PositionVelocity(float position, float velocity)
 {
     m_state_j5 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j5 = position;
-    m_setpoint_vel_j5 = velocity;
+    m_setpoint_vel_j5 = std::fabs(velocity);
+    pid_integral_j5 = 0.0f;
+    pid_previous_error_valid_j5 = false;
+    m_j5_position_complete = false;
 }
 
 /**
@@ -961,7 +1100,10 @@ void JointController::setJ6PositionVelocity(float position, float velocity)
 {
     m_state_j6 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j6 = position;
-    m_setpoint_vel_j6 = velocity;
+    m_setpoint_vel_j6 = std::fabs(velocity);
+    pid_integral_j6 = 0.0f;
+    pid_previous_error_valid_j6 = false;
+    m_j6_position_complete = false;
 }
 
 /**
@@ -987,6 +1129,8 @@ void JointController::setJ5PID(float p, float i, float d)
     pid_p_j5 = p;
     pid_i_j5 = i;
     pid_d_j5 = d;
+    pid_integral_j5 = 0.0f;
+    pid_previous_error_valid_j5 = false;
 }
 
 /**
@@ -1001,6 +1145,21 @@ void JointController::setJ6PID(float p, float i, float d)
     pid_p_j6 = p;
     pid_i_j6 = i;
     pid_d_j6 = d;
+    pid_integral_j6 = 0.0f;
+    pid_previous_error_valid_j6 = false;
+}
+
+void JointController::setJ5J6Mixing(
+    float j5ToM5, float j5ToM6, float j6ToM5, float j6ToM6)
+{
+    m_j5_to_m5 = j5ToM5;
+    m_j5_to_m6 = j5ToM6;
+    m_j6_to_m5 = j6ToM5;
+    m_j6_to_m6 = j6ToM6;
+    pid_integral_j5 = 0.0f;
+    pid_integral_j6 = 0.0f;
+    pid_previous_error_valid_j5 = false;
+    pid_previous_error_valid_j6 = false;
 }
 
 /**

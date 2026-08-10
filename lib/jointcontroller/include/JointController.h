@@ -57,9 +57,18 @@ public:
     std::vector<float> getConfiguration();
     void checkJointLimitsJ2J3();
     float getDiffAngleJ2J3();
-    void stepDCMotor(DCMotor * motor, AS5600 * encoder, JointControlState * state, float pid_p, float pid_i, float pid_d, float * setpoint_pos, float * setpoint_vel, float * speed_m5, float * speed_m6);
-    bool isJointLimitReachedJ5(float speed_m5_j5);
-    bool isJointLimitReachedJ6(float speed_m6_j6);
+    float stepDCJoint(AS5600 *encoder, JointControlState *state,
+                      float pid_p, float pid_i, float pid_d,
+                      float *setpoint_pos, float *setpoint_vel,
+                      float *integral, float *previous_error,
+                      float *filtered_derivative,
+                      bool *previous_error_valid,
+                      bool *position_complete);
+    float compensateDCMotorDeadZone(float command,
+                                    float positiveMinimum,
+                                    float negativeMinimum);
+    bool isJointLimitReachedJ5(float jointCommand);
+    bool isJointLimitReachedJ6(float jointCommand);
     bool isAllEncoderStatusValid();
 
     void step();
@@ -104,6 +113,8 @@ public:
     void setJ4PID(float p, float i, float d);
     void setJ5PID(float p, float i, float d);
     void setJ6PID(float p, float i, float d);
+    void setJ5J6Mixing(float j5ToM5, float j5ToM6,
+                       float j6ToM5, float j6ToM6);
 
 private:
     void updateJ4NeutralEstimator(float positionError, float velocity);
@@ -141,12 +152,26 @@ private:
     float m_j4_drive_accumulator = 0.0f;
     float m_j4_previous_drive_sign = 0.0f;
     bool m_j4_servo_frame_phase = false;
-    float pid_p_j5 = 5;
+    float pid_p_j5 = 6;
     float pid_i_j5 = 0;
-    float pid_d_j5 = 0;
-    float pid_p_j6 = 20;
+    float pid_d_j5 = 0.0f;
+    float pid_integral_j5 = 0.0f;
+    float pid_previous_error_j5 = 0.0f;
+    float pid_filtered_derivative_j5 = 0.0f;
+    bool pid_previous_error_valid_j5 = false;
+    bool m_j5_position_complete = false;
+    float pid_p_j6 = 2;
     float pid_i_j6 = 0;
-    float pid_d_j6 = 0;
+    float pid_d_j6 = 0.0f;
+    float pid_integral_j6 = 0.0f;
+    float pid_previous_error_j6 = 0.0f;
+    float pid_filtered_derivative_j6 = 0.0f;
+    bool pid_previous_error_valid_j6 = false;
+    bool m_j6_position_complete = false;
+    float m_j5_to_m5 = J5_TO_M5_COEFFICIENT;
+    float m_j5_to_m6 = J5_TO_M6_COEFFICIENT;
+    float m_j6_to_m5 = J6_TO_M5_COEFFICIENT;
+    float m_j6_to_m6 = J6_TO_M6_COEFFICIENT;
 
     StepperConfiguration *m_stepperConfiguration; /**< Stepper configuration. */
 
