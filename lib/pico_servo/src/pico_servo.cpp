@@ -32,6 +32,8 @@
 
 #include "fixmath.h"
 
+#include <algorithm>
+#include <cmath>
 #include <string.h>
 
 #define KILO 1e3
@@ -48,6 +50,7 @@ static uint slice_active[8];
 static uint servo_pos[32];
 static uint servo_pos_buf[16];
 static pwm_config slice_cfg[8];
+static bool servo_system_initialized = false;
 
 static uint min_us = 300;
 static uint max_us = 1300;
@@ -100,6 +103,11 @@ void servo_set_bounds(uint a, uint b)
  */
 int servo_init(void)
 {
+    if (servo_system_initialized)
+    {
+        return 0;
+    }
+
     for (int i = 0; i < 30; ++i)
     {
         slice_map[i] = -1;
@@ -109,6 +117,7 @@ int servo_init(void)
     memset(servo_pos_buf, 0, 16 * sizeof(uint));
 
     irq_add_shared_handler(PWM_IRQ_WRAP, wrap_cb, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+    servo_system_initialized = true;
 
     return 0;
 }
@@ -229,6 +238,28 @@ int servo_move_to(uint pin, uint angle)
 }
 
 /**
+ * @brief Set a servo command without discarding its fractional component.
+ *
+ * Continuous-rotation servo neutral points commonly fall between integer
+ * angle commands. Keeping the float until conversion to PWM counter ticks
+ * gives roughly three times finer output resolution with the current bounds.
+ */
+int servo_move_to_float(uint pin, float angle)
+{
+    if (slice_map[pin] < 0)
+    {
+        return 1;
+    }
+
+    angle = std::clamp(angle, 0.0f, 180.0f);
+    uint val = (uint)lroundf(min + (angle / 180.0f) * (max - min));
+    uint pos = slice_map[pin] + (pin % 2);
+    servo_pos[16 * servo_pos_buf[pos] + pos] = val;
+    servo_pos_buf[pos] = (servo_pos_buf[pos] + 1) % 2;
+    return 0;
+}
+
+/**
  * @brief Move a servo.
  *
  * Move a servo by specifing microseconds.
@@ -249,4 +280,3 @@ int servo_microseconds(uint pin, uint us)
     servo_pos_buf[pos] = (servo_pos_buf[pos] + 1) % 2;
     return 0;
 }
-

@@ -176,7 +176,7 @@ def create_btns_motor(names):
 def create_txts_joint(names):    
     all_txts_manual = []
     for mo in names:
-        if mo == "J1" or mo == "J2" or mo == "J3":
+        if mo == "J1" or mo == "J2" or mo == "J3" or mo == "J4":
             all_txts_manual.append(sg.Input(default_text="10", size=4))
         else:
             all_txts_manual.append(sg.Input(default_text="50", size=4))
@@ -213,7 +213,7 @@ def create_encoder_layout(names):
 def create_txts_motor(names):    
     all_txts_manual = []
     for mo in names:
-        if mo == "M1" or mo == "M2" or mo == "M3":
+        if mo == "M1" or mo == "M2" or mo == "M3" or mo == "M4":
             all_txts_manual.append(sg.Input(default_text="10", size=4))
         else:
             all_txts_manual.append(sg.Input(default_text="50", size=4))
@@ -299,7 +299,7 @@ if __name__ == "__main__":
     button_layout_motors = create_btn_layout_motor(motor_names, all_btns_motors, all_txts_motors)
     
     
-    txt_command = sg.Input(default_text="VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd)", size=35, tooltip="Possible commands: COORD(x,y,z), CONFIG(j1,j2,j3,j4,j5,j6), VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd), PID_J5(p,i,d), PID_J6(p,i,d)")
+    txt_command = sg.Input(default_text="VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd)", size=35, tooltip="Possible commands: COORD(x,y,z), CONFIG(j1,j2,j3,j4,j5,j6), VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd), PID_J4(p,i,d), PID_J5(p,i,d), PID_J6(p,i,d)")
     btn_send_command = sg.Button("SEND", size=7)
     btn_save_zeros = sg.Button("SAVE ZEROS", size=15)
     btn_load_zeros = sg.Button("LOAD ZEROS", size=15)

@@ -36,6 +36,9 @@ Robot::Robot(void):
     m_stepperM2(AccelStepper::DRIVER, MOTOR2_STEP_PIN, MOTOR2_DIR_PIN),
     m_stepperM3(AccelStepper::DRIVER, MOTOR3_STEP_PIN, MOTOR3_DIR_PIN),
     m_stepperConfiguration(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, MICROSTEP_RESOLUTION, 60.0/16.0 * 60.0/16.0),
+    m_motorM4(SERVO_CONTINUE_J4_PIN, CONTINUOUS_SERVO_J4_NEUTRAL_COMMAND,
+              CONTINUOUS_SERVO_J4_MIN_COMMAND, CONTINUOUS_SERVO_J4_MAX_COMMAND,
+              CONTINUOUS_SERVO_J4_DIRECTION),
     m_motorM5(MOTOR5_ENABLE_PIN, MOTOR5_IN1_PIN, MOTOR5_IN2_PIN),
     m_motorM6(MOTOR6_ENABLE_PIN, MOTOR6_IN1_PIN, MOTOR6_IN2_PIN),
     m_jointController(&m_stepperConfiguration),
@@ -54,12 +57,14 @@ Robot::Robot(void):
     m_motorController.addM1(&m_stepperM1, NULL);
     m_motorController.addM2(&m_stepperM2, &m_encoderJ2);
     m_motorController.addM3(&m_stepperM3, &m_encoderJ3);
+    m_motorController.addM4(&m_motorM4);
     m_motorController.addM5(&m_motorM5);
     m_motorController.addM6(&m_motorM6);
 
     m_jointController.addM1(&m_stepperM1);
     m_jointController.addM2(&m_stepperM2);
     m_jointController.addM3(&m_stepperM3);
+    m_jointController.addM4(&m_motorM4);
     m_jointController.addM5(&m_motorM5);
     m_jointController.addM6(&m_motorM6);
 
@@ -247,6 +252,11 @@ std::string Robot::getRobotDataAsJson()
                                          m_encoderJ4.readAngleDeg(), m_encoderJ5.readAngleDeg(), m_encoderJ6.readAngleDeg()};
     jsonObj["robot_data"]["encoder_status"] = {m_encoderJ2.getStatus(), m_encoderJ3.getStatus(),
                                   m_encoderJ4.getStatus(), m_encoderJ5.getStatus(), m_encoderJ6.getStatus()};
+    jsonObj["robot_data"]["j4_continuous_servo"] = {
+        {"neutral_command", m_motorM4.getNeutralCommand()},
+        {"output_command", m_motorM4.getCommand()},
+        {"speed", m_motorM4.getSpeed()}
+    };
     jsonObj["robot_data"]["diffAngleJ2J3"] = m_jointController.getDiffAngleJ2J3();
     jsonObj["robot_data"]["speeds"] = {m_stepperM1.speed(), m_stepperM2.speed(), m_stepperM3.speed()};
     roundJsonFloatsToThreeDecimals(jsonObj);
@@ -256,6 +266,9 @@ std::string Robot::getRobotDataAsJson()
 void Robot::setPID(int joint, float p, float i, float d)
 {
     switch(joint){
+        case Joint::J4:
+        m_jointController.setJ4PID(p, i, d);
+        break;
         case Joint::J5:
         m_jointController.setJ5PID(p, i, d);
         break;
@@ -306,7 +319,7 @@ std::vector<float> Robot::inverseKinematics(float x, float y, float z, GripperPo
     result.push_back(m0 * 180.0 / M_PI);
     result.push_back(m1 * 180.0 / M_PI);
     result.push_back(-m2 * 180.0 / M_PI);
-    result.push_back(0.0f); // J4 is intentionally left unimplemented for now.
+    result.push_back(0.0f); // The current Cartesian IK keeps J4 at its zero position.
 
     if(gripperPose == GripperPose::DOWN){
         float j5 = -(M_PI/2 - m2);
@@ -371,6 +384,9 @@ void Robot::initJoint(int joint){
         case Joint::J3:
         m_jointController.initializeJ3();
         break;
+        case Joint::J4:
+        m_jointController.initializeJ4();
+        break;
         case Joint::J5:
         m_jointController.initializeJ5();
         break;
@@ -420,6 +436,9 @@ void Robot::setMotorVelocity(int motor, float velocity){
         case Motor::M3:
         m_motorController.setM3Velocity(velocity);
         break;
+        case Motor::M4:
+        m_motorController.setM4Velocity(velocity);
+        break;
         case Motor::M5:
         m_motorController.setM5Velocity(velocity);
         break;
@@ -446,6 +465,9 @@ void Robot::setJointVelocity(int joint, float velocity){
         case Joint::J3:
         m_jointController.setJ3Velocity(velocity);
         break;
+        case Joint::J4:
+        m_jointController.setJ4Velocity(velocity);
+        break;
         case Joint::J5:
         m_jointController.setJ5Velocity(velocity);
         break;
@@ -466,6 +488,9 @@ void Robot::setJointPositionVelocity(int joint, float position, float velocity){
         case Joint::J3:
         m_jointController.setJ3PositionVelocity(position, velocity);
         break;
+        case Joint::J4:
+        m_jointController.setJ4PositionVelocity(position, velocity);
+        break;
         case Joint::J5:
         m_jointController.setJ5PositionVelocity(position, velocity);
         break;
@@ -485,6 +510,9 @@ void Robot::setJointPosition(int joint, float position){
         break;
         case Joint::J3:
         m_jointController.setJ3Position(position);
+        break;
+        case Joint::J4:
+        m_jointController.setJ4Position(position);
         break;
         case Joint::J5:
         m_jointController.setJ5Position(position);

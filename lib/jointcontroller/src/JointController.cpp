@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <algorithm>
+#include <cmath>
 
 JointController::JointController(StepperConfiguration *stepperConfiguration)
 {
@@ -22,6 +23,11 @@ void JointController::addM2(AccelStepper *stepper2)
 void JointController::addM3(AccelStepper *stepper3)
 {
     m_stepper3 = stepper3;
+}
+
+void JointController::addM4(ContinuousServo *motor4)
+{
+    m_motor4 = motor4;
 }
 
 void JointController::addM5(DCMotor *motor5)
@@ -69,6 +75,7 @@ void JointController::initialize()
     initializeJ1();
     initializeJ2();
     initializeJ3();
+    initializeJ4();
     initializeJ5();
     initializeJ6();
 }
@@ -364,6 +371,7 @@ void JointController::step()
         m_state_j1 = JointControlState::DISABLED;
         m_state_j2 = JointControlState::DISABLED;
         m_state_j3 = JointControlState::DISABLED;
+        m_state_j4 = JointControlState::DISABLED;
         m_state_j5 = JointControlState::DISABLED;
         m_state_j6 = JointControlState::DISABLED;
     }
@@ -371,6 +379,7 @@ void JointController::step()
     stepStepper(m_stepper1, m_encoder1, &m_state_j1, &m_setpoint_pos_j1, &m_setpoint_vel_j1);
     stepStepper(m_stepper2, m_encoder2, &m_state_j2, &m_setpoint_pos_j2, &m_setpoint_vel_j2);
     stepStepper(m_stepper3, m_encoder3, &m_state_j3, &m_setpoint_pos_j3, &m_setpoint_vel_j3);
+    stepContinuousServo();
 
     float speed_m5_j5 = 0;
     float speed_m5_j6 = 0;
@@ -462,8 +471,14 @@ void JointController::reset()
     m_state_j1 = JointControlState::DISABLED;
     m_state_j2 = JointControlState::DISABLED;
     m_state_j3 = JointControlState::DISABLED;
+    m_state_j4 = JointControlState::DISABLED;
     m_state_j5 = JointControlState::DISABLED;
     m_state_j6 = JointControlState::DISABLED;
+    m_j4_latched_hold_mode = false;
+    resetJ4ControlHistory();
+    if(m_motor4 != NULL){
+        m_motor4->stop();
+    }
 }
 
 void JointController::initializeJ1()
@@ -479,6 +494,11 @@ void JointController::initializeJ2()
 void JointController::initializeJ3()
 {
     m_state_j3 = JointControlState::INITIALIZATION;
+}
+
+void JointController::initializeJ4()
+{
+    m_state_j4 = JointControlState::INITIALIZATION;
 }
 
 void JointController::initializeJ5()
@@ -515,11 +535,187 @@ void JointController::zeroJ3()
     m_stepper3->setCurrentPosition(0);
 }
 
+void JointController::resetJ4ControlHistory()
+{
+    pid_integral_j4 = 0.0f;
+    m_j4_position_sample_valid = false;
+    m_j4_previous_position = 0.0f;
+    m_j4_filtered_velocity = 0.0f;
+    m_j4_drive_accumulator = 0.0f;
+    m_j4_previous_drive_sign = 0.0f;
+    m_j4_servo_frame_phase = false;
+}
+
+void JointController::updateJ4NeutralEstimator(float positionError, float velocity)
+{
+    // Near the target, the persistent position error and residual velocity are
+    // estimates of neutral-command bias. Adapt continuously, but slowly enough
+    // that this feed-forward term cannot fight the fast PD position loop.
+    if(std::fabs(positionError) > J4_NEUTRAL_LEARNING_ERROR_DEG){
+        return;
+    }
+
+    constexpr float dt = 0.01f;
+    float adjustmentRate = m_motor4->getDirection() *
+        (J4_NEUTRAL_ERROR_GAIN * positionError
+         - J4_NEUTRAL_VELOCITY_GAIN * velocity);
+    adjustmentRate = std::clamp(
+        adjustmentRate,
+        -J4_NEUTRAL_MAX_RATE,
+        J4_NEUTRAL_MAX_RATE
+    );
+
+    float minimumNeutral = CONTINUOUS_SERVO_J4_NEUTRAL_COMMAND
+                         - J4_NEUTRAL_ESTIMATOR_MAX_OFFSET;
+    float maximumNeutral = CONTINUOUS_SERVO_J4_NEUTRAL_COMMAND
+                         + J4_NEUTRAL_ESTIMATOR_MAX_OFFSET;
+    m_motor4->setNeutralCommand(std::clamp(
+        m_motor4->getNeutralCommand() + adjustmentRate * dt,
+        minimumNeutral,
+        maximumNeutral
+    ));
+}
+
+/**
+ * @brief Update the closed-loop controller for the J4 continuous servo.
+ *
+ * The servo accepts a signed speed offset while the AS5600 provides position
+ * feedback. Position errors use the shortest path across the 0/360-degree
+ * boundary. This method is called by the existing 100 Hz joint-control loop.
+ */
+void JointController::stepContinuousServo()
+{
+    if(m_motor4 == NULL){
+        return;
+    }
+
+    if(m_state_j4 == JointControlState::DISABLED){
+        m_motor4->stop();
+        m_j4_latched_hold_mode = false;
+        resetJ4ControlHistory();
+        return;
+    }
+
+    if(m_state_j4 == JointControlState::INITIALIZATION){
+        m_state_j4 = JointControlState::POSITION_CONTROL;
+        m_setpoint_pos_j4 = 0.0f;
+        m_setpoint_vel_j4 = DEFAULT_VEL_CONTINUOUS_SERVO;
+        m_j4_latched_hold_mode = false;
+        resetJ4ControlHistory();
+    }
+
+    if(m_state_j4 == JointControlState::VELOCITY_CONTROL){
+        m_motor4->setSpeed(std::clamp(
+            m_setpoint_vel_j4,
+            -MAX_VEL_CONTINUOUS_SERVO,
+            MAX_VEL_CONTINUOUS_SERVO
+        ));
+        return;
+    }
+
+    if(m_encoder4 == NULL){
+        m_state_j4 = JointControlState::DISABLED;
+        m_motor4->stop();
+        return;
+    }
+
+    float currentPosition = m_encoder4->getCorrectedAngleDeg();
+
+    constexpr float dt = 0.01f;
+    if(!m_j4_position_sample_valid){
+        m_j4_previous_position = currentPosition;
+        m_j4_position_sample_valid = true;
+    }
+    float positionDelta = currentPosition - m_j4_previous_position;
+    while(positionDelta > 180.0f) positionDelta -= 360.0f;
+    while(positionDelta < -180.0f) positionDelta += 360.0f;
+    m_j4_previous_position = currentPosition;
+    float rawVelocity = positionDelta / dt;
+    m_j4_filtered_velocity += J4_VELOCITY_FILTER_ALPHA
+                            * (rawVelocity - m_j4_filtered_velocity);
+
+    float error = m_setpoint_pos_j4 - currentPosition;
+    while(error > 180.0f) error -= 360.0f;
+    while(error < -180.0f) error += 360.0f;
+    float absoluteError = std::fabs(error);
+
+    // Integrate only while position control is active and prevent wind-up.
+    pid_integral_j4 += error * dt;
+    if(pid_i_j4 > 0.0f){
+        float integralLimit = J4_INTEGRAL_LIMIT / pid_i_j4;
+        pid_integral_j4 = std::clamp(
+            pid_integral_j4, -integralLimit, integralLimit);
+    }
+    else{
+        pid_integral_j4 = 0.0f;
+    }
+
+    float speedLimit = std::clamp(
+        std::fabs(m_setpoint_vel_j4),
+        0.0f,
+        MAX_VEL_CONTINUOUS_SERVO
+    );
+    if(m_j4_latched_hold_mode){
+        speedLimit = std::min(speedLimit, J4_HOLD_MAX_COMMAND);
+    }
+    // Derivative-on-measurement avoids a kick when a new target is commanded.
+    float speed = pid_p_j4 * error
+                + pid_i_j4 * pid_integral_j4
+                - pid_d_j4 * m_j4_filtered_velocity;
+    speed = std::clamp(speed, -speedLimit, speedLimit);
+
+    bool positionSettled = absoluteError <= J4_POSITION_TOLERANCE_DEG;
+    bool motionSettled = std::fabs(m_j4_filtered_velocity)
+                      <= J4_STOPPED_VELOCITY_DEG_S;
+    if(positionSettled && motionSettled){
+        speed = 0.0f;
+        pid_integral_j4 *= 0.98f;
+    }
+    updateJ4NeutralEstimator(error, m_j4_filtered_velocity);
+
+    // A hobby servo consumes one command per 20 ms frame. Send position-loop
+    // output at that rate and use pulse-density modulation below the physical
+    // dead zone. A requested command of 1 with a dead zone of 5 therefore
+    // becomes one gentle 5-unit frame out of five, not a permanent 5-unit kick.
+    m_j4_servo_frame_phase = !m_j4_servo_frame_phase;
+    if(!m_j4_servo_frame_phase){
+        return;
+    }
+
+    float outputSpeed = speed;
+    float absoluteSpeed = std::fabs(speed);
+    if(absoluteSpeed > 0.0f && absoluteSpeed < J4_MIN_DRIVE_COMMAND){
+        float driveSign = std::copysign(1.0f, speed);
+        if(driveSign != m_j4_previous_drive_sign){
+            m_j4_drive_accumulator = 0.0f;
+        }
+        m_j4_previous_drive_sign = driveSign;
+        m_j4_drive_accumulator += absoluteSpeed / J4_MIN_DRIVE_COMMAND;
+        if(m_j4_drive_accumulator >= 1.0f){
+            outputSpeed = driveSign * J4_MIN_DRIVE_COMMAND;
+            m_j4_drive_accumulator -= 1.0f;
+        }
+        else{
+            outputSpeed = 0.0f;
+        }
+    }
+    else{
+        m_j4_drive_accumulator = 0.0f;
+        m_j4_previous_drive_sign = absoluteSpeed > 0.0f
+                                 ? std::copysign(1.0f, speed)
+                                 : 0.0f;
+    }
+
+    m_motor4->setSpeed(outputSpeed);
+}
+
 void JointController::zeroJ4()
 {
     if(m_encoder4 != NULL){
         m_encoder4->setZero();
     }
+    m_setpoint_pos_j4 = 0.0f;
+    resetJ4ControlHistory();
 }
 
 void JointController::zeroJ5()
@@ -570,6 +766,18 @@ void JointController::setJ3Position(float position)
     m_state_j3 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j3 = position;
     m_setpoint_vel_j3 = DEFAULT_VEL_STEPPER;
+}
+
+/**
+ * @brief Set the J4 position using encoder feedback and the continuous servo.
+ */
+void JointController::setJ4Position(float position)
+{
+    m_state_j4 = JointControlState::POSITION_CONTROL;
+    m_setpoint_pos_j4 = position;
+    m_setpoint_vel_j4 = DEFAULT_VEL_CONTINUOUS_SERVO;
+    m_j4_latched_hold_mode = false;
+    resetJ4ControlHistory();
 }
 
 /**
@@ -627,6 +835,34 @@ void JointController::setJ3Velocity(float velocity)
 {
     m_state_j3 = JointControlState::VELOCITY_CONTROL;
     m_setpoint_vel_j3 = velocity;
+}
+
+/**
+ * @brief Set J4 signed speed as an offset from the neutral servo command.
+ */
+void JointController::setJ4Velocity(float velocity)
+{
+    if(std::fabs(velocity) < 0.001f){
+        if(m_motor4 != NULL){
+            m_motor4->stop();
+        }
+        if(m_encoder4 != NULL){
+            m_setpoint_pos_j4 = m_encoder4->getCorrectedAngleDeg();
+            m_setpoint_vel_j4 = DEFAULT_VEL_CONTINUOUS_SERVO;
+            m_state_j4 = JointControlState::POSITION_CONTROL;
+            m_j4_latched_hold_mode = true;
+            resetJ4ControlHistory();
+        }
+        else{
+            m_state_j4 = JointControlState::DISABLED;
+        }
+        return;
+    }
+
+    m_state_j4 = JointControlState::VELOCITY_CONTROL;
+    m_setpoint_vel_j4 = velocity;
+    m_j4_latched_hold_mode = false;
+    resetJ4ControlHistory();
 }
 
 /**
@@ -691,6 +927,18 @@ void JointController::setJ3PositionVelocity(float position, float velocity)
 }
 
 /**
+ * @brief Set the J4 position and maximum continuous-servo speed.
+ */
+void JointController::setJ4PositionVelocity(float position, float velocity)
+{
+    m_state_j4 = JointControlState::POSITION_CONTROL;
+    m_setpoint_pos_j4 = position;
+    m_setpoint_vel_j4 = std::fabs(velocity);
+    m_j4_latched_hold_mode = false;
+    resetJ4ControlHistory();
+}
+
+/**
  * @brief Set the J5 Position and Velocity
  * 
  * @param position  The position to move to [deg]
@@ -714,6 +962,17 @@ void JointController::setJ6PositionVelocity(float position, float velocity)
     m_state_j6 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j6 = position;
     m_setpoint_vel_j6 = velocity;
+}
+
+/**
+ * @brief Set the J4 PID parameters
+ */
+void JointController::setJ4PID(float p, float i, float d)
+{
+    pid_p_j4 = p;
+    pid_i_j4 = i;
+    pid_d_j4 = d;
+    resetJ4ControlHistory();
 }
 
 /**
@@ -802,8 +1061,8 @@ void JointController::moveToConfiguration(std::vector<float> config, float veloc
         setJ3PositionVelocity(config[2], speed3);
     }
 
-    // J4 (config[3]) is intentionally ignored until its actuator is implemented.
     if(config.size() >= 6){
+        setJ4Position(config[3]);
         setJ5Position(config[4]);
         setJ6Position(config[5]);
     }

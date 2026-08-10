@@ -8,6 +8,7 @@
 #include <AccelStepper.h>
 #include <StepperConfiguration.h>
 #include <DCMotor.h>
+#include <ContinuousServo.h>
 #include <MotorController.h>
 #include <JointController.h>
 #include <Gripper.h>
@@ -85,6 +86,7 @@ private:
     AccelStepper m_stepperM2; /**< Stepper M2. */
     AccelStepper m_stepperM3; /**< Stepper M3. */
 
+    ContinuousServo m_motorM4; /**< Continuous-rotation servo M4. */
     DCMotor m_motorM5; /**< Motor M5. */
     DCMotor m_motorM6; /**< Motor M6. */
 

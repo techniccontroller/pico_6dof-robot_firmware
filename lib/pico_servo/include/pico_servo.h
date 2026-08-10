@@ -35,6 +35,7 @@ int servo_clock_manual(uint);
 int servo_attach(uint);
 int servo_enable(void);
 int servo_move_to(uint, uint);
+int servo_move_to_float(uint, float);
 int servo_microseconds(uint, uint);
 
 #endif /* PICO_SERVO_H */

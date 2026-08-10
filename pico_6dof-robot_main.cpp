@@ -22,6 +22,7 @@
 
 constexpr uint32_t TELEMETRY_RATE_HZ = 30;
 constexpr uint64_t TELEMETRY_INTERVAL_US = 1000000 / TELEMETRY_RATE_HZ;
+constexpr uint64_t CONTROL_INTERVAL_US = 10000; // 100 Hz
 
 
 void setLEDState(bool state)
@@ -62,25 +63,31 @@ int main()
     printf("USB Clock Frequency is %d Hz\n", clock_get_hz(clk_usb));
     
     uint64_t last_telemetry_time_us = time_us_64();
-    uint32_t last_step_time = time_us_64() / 1000;
+    uint64_t last_step_time_us = time_us_64();
 
     while (true) {
         
         comm.check_incoming_cmds();
 
         uint64_t current_time_us = time_us_64();
+        if((current_time_us - last_step_time_us) >= CONTROL_INTERVAL_US)
+        {
+            robot.step();
+            last_step_time_us += CONTROL_INTERVAL_US;
+
+            // Do not execute a burst of stale control iterations after a long
+            // USB/debug stall; resume from the current time instead.
+            if((current_time_us - last_step_time_us) >= CONTROL_INTERVAL_US)
+            {
+                last_step_time_us = current_time_us;
+            }
+        }
+
         if((current_time_us - last_telemetry_time_us) >= TELEMETRY_INTERVAL_US)
         {
             std::string robotDataJson = robot.getRobotDataAsJson();
             puts(robotDataJson.c_str());
             last_telemetry_time_us = current_time_us;
-        }
-
-        uint32_t current_time = current_time_us / 1000;
-        if((current_time - last_step_time > 10))
-        {
-            robot.step();
-            last_step_time = current_time;
         }
 
         robot.run();

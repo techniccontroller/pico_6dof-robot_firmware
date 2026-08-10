@@ -60,6 +60,13 @@
 #define SERVO_CONTINUE_J4_PIN 14
 #define SERVO_GRIPPER_PIN 15
 
+// Continuous-rotation servo commands for Joint 4. Tune the neutral command if
+// the servo creeps while stopped; set direction to -1.0f to reverse it.
+#define CONTINUOUS_SERVO_J4_NEUTRAL_COMMAND 100.0f
+#define CONTINUOUS_SERVO_J4_MIN_COMMAND 0.0f
+#define CONTINUOUS_SERVO_J4_MAX_COMMAND 180.0f
+#define CONTINUOUS_SERVO_J4_DIRECTION -1.0f
+
 
 /**
  * @brief EEPROM addresses
@@ -83,6 +90,22 @@
 
 #define INIT_VEL_STEPPER 3.2f       // 100 steps/s = 3.2 deg/s
 #define INIT_VEL_DCMOTOR 50.0f      // PWM
+#define DEFAULT_VEL_CONTINUOUS_SERVO 50.0f // Offset from neutral servo command
+#define MAX_VEL_CONTINUOUS_SERVO 80.0f     // Offset from neutral servo command
+#define J4_POSITION_TOLERANCE_DEG 0.18f    // About two AS5600 counts; suppresses encoder chatter
+#define J4_MIN_DRIVE_COMMAND 3.0f          // Measured servo command needed to overcome stiction
+#define J4_HOLD_MAX_COMMAND 12.0f          // Limit corrections after a zero-speed hold request
+#define J4_VELOCITY_FILTER_ALPHA 0.25f     // Low-pass filter for the differentiated encoder angle
+#define J4_STOPPED_VELOCITY_DEG_S 0.6f
+#define J4_INTEGRAL_LIMIT 12.0f            // Maximum integral contribution in servo-command units
+#define J4_NEUTRAL_LEARNING_ERROR_DEG 0.75f
+#define J4_NEUTRAL_ERROR_GAIN 2.0f         // Neutral-command units per degree per second
+#define J4_NEUTRAL_VELOCITY_GAIN 0.15f     // Neutral-command units per measured degree
+#define J4_NEUTRAL_MAX_RATE 1.0f           // Maximum neutral-command change per second
+#define J4_NEUTRAL_ESTIMATOR_MAX_OFFSET 10.0f
+#define J4_PID_P_DEFAULT 0.5f
+#define J4_PID_I_DEFAULT 0.0f            // Neutral adaptation provides the bias correction
+#define J4_PID_D_DEFAULT 0.10f
 
 #define LIMIT_J2_MIN -31.0f
 #define LIMIT_J2_MAX 110.0f

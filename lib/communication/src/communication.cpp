@@ -259,6 +259,18 @@ void Communication::process_cmd(char *cmd)
             comm_func_write("VEL_CONFIG is set\n");
         }        
     }
+    else if (starts_with("PID_J4", cmd))
+    {
+        std::vector<float> values = extract_cmd_values(cmd);
+
+        m_robot->setPID(Joint::J4, values[0], values[1], values[2]);
+        if (DEBUG_IS_ENABLED)
+        {
+            char str_buffer[20];
+            sprintf(str_buffer, "J4 PID set: %f, %f, %f", values[0], values[1], values[2]);
+            comm_func_write(str_buffer);
+        }
+    }
     else if (starts_with("PID_J5", cmd))
     {
         std::vector<float> values = extract_cmd_values(cmd);

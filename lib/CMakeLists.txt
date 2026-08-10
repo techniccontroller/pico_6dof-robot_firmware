@@ -1,4 +1,5 @@
 add_subdirectory(pico_servo)
+add_subdirectory(continuousservo)
 add_subdirectory(as5600)
 add_subdirectory(communication)
 add_subdirectory(defines_constants)

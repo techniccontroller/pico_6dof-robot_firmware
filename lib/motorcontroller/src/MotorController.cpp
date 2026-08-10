@@ -28,6 +28,11 @@ void MotorController::addM3(AccelStepper *stepper3, AS5600 *encoder3)
     g_encoder3 = encoder3;
 }
 
+void MotorController::addM4(ContinuousServo *motor4)
+{
+    g_motor4 = motor4;
+}
+
 void MotorController::addM5(DCMotor *motor5)
 {
     g_motor5 = motor5;
@@ -51,6 +56,11 @@ AccelStepper *MotorController::getM2()
 AccelStepper *MotorController::getM3()
 {
     return g_stepper3;
+}
+
+ContinuousServo *MotorController::getM4()
+{
+    return g_motor4;
 }
 
 DCMotor *MotorController::getM5()
@@ -141,6 +151,23 @@ void MotorController::step()
     stepStepper(g_stepper1, g_encoder1, &g_m1_state, &g_m1_setpoint_pos, &g_m1_setpoint_vel);
     stepStepper(g_stepper2, g_encoder2, &g_m2_state, &g_m2_setpoint_pos, &g_m2_setpoint_vel);
     stepStepper(g_stepper3, g_encoder3, &g_m3_state, &g_m3_setpoint_pos, &g_m3_setpoint_vel);
+
+    if(g_motor4 != NULL) switch (g_m4_state)
+    {
+    case VELOCITY_CONTROL:
+        g_motor4->setSpeed(std::clamp(
+            g_m4_setpoint_vel,
+            -MAX_VEL_CONTINUOUS_SERVO,
+            MAX_VEL_CONTINUOUS_SERVO
+        ));
+        break;
+    case DISABLED:
+    case INITIALIZATION:
+    case POSITION_CONTROL:
+    default:
+        g_motor4->stop();
+        break;
+    }
 
     switch (g_m5_state)
     {
@@ -274,8 +301,12 @@ void MotorController::reset()
     g_m1_state = MotorControlState::DISABLED;
     g_m2_state = MotorControlState::DISABLED;
     g_m3_state = MotorControlState::DISABLED;
+    g_m4_state = MotorControlState::DISABLED;
     g_m5_state = MotorControlState::DISABLED;
     g_m6_state = MotorControlState::DISABLED;
+    if(g_motor4 != NULL){
+        g_motor4->stop();
+    }
 }
 
 void MotorController::initializeM1()
@@ -291,6 +322,14 @@ void MotorController::initializeM2()
 void MotorController::initializeM3()
 {
     g_m3_state = MotorControlState::INITIALIZATION;
+}
+
+void MotorController::initializeM4()
+{
+    g_m4_state = MotorControlState::DISABLED;
+    if(g_motor4 != NULL){
+        g_motor4->stop();
+    }
 }
 
 void MotorController::initializeM5()
@@ -327,6 +366,16 @@ void MotorController::setM3Position(float position)
     printf("M3 - setpoint: %f\n\r", g_m3_setpoint_pos);
 }
 
+void MotorController::setM4Position(float position)
+{
+    // A continuous servo has no intrinsic position mode in the raw motor controller.
+    g_m4_state = MotorControlState::DISABLED;
+    g_m4_setpoint_pos = position;
+    if(g_motor4 != NULL){
+        g_motor4->stop();
+    }
+}
+
 void MotorController::setM5Position(float position)
 {
     g_m5_state = MotorControlState::POSITION_CONTROL;
@@ -359,6 +408,12 @@ void MotorController::setM3Velocity(float velocity)
 {
     g_m3_state = MotorControlState::VELOCITY_CONTROL;
     g_m3_setpoint_vel = velocity;
+}
+
+void MotorController::setM4Velocity(float velocity)
+{
+    g_m4_state = MotorControlState::VELOCITY_CONTROL;
+    g_m4_setpoint_vel = velocity;
 }
 
 void MotorController::setM5Velocity(float velocity)
@@ -395,6 +450,13 @@ void MotorController::setM3PositionVelocity(float position, float velocity)
     g_m3_setpoint_pos = position;
     g_m3_setpoint_vel = velocity;
     printf("M3 - setpoint pos: %f, vel: %f\n\r", g_m3_setpoint_pos, g_m3_setpoint_vel);
+}
+
+void MotorController::setM4PositionVelocity(float position, float velocity)
+{
+    // Position control for J4 belongs to JointController, where encoder feedback is available.
+    g_m4_setpoint_pos = position;
+    setM4Velocity(velocity);
 }
 
 void MotorController::setM5PositionVelocity(float position, float velocity)
