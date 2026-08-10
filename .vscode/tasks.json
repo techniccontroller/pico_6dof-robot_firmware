@@ -32,7 +32,12 @@
             },
             "problemMatcher": [],
             "windows": {
-                "command": "${env:USERPROFILE}/.pico-sdk/picotool/2.1.0/picotool/picotool.exe"
+                "command": "powershell.exe",
+                "args": [
+                    "-NoProfile",
+                    "-Command",
+                    "& '${env:USERPROFILE}/.pico-sdk/picotool/2.1.0/picotool/picotool.exe' reboot -f -u; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Start-Sleep -Milliseconds 1000; & '${env:USERPROFILE}/.pico-sdk/picotool/2.1.0/picotool/picotool.exe' load '${command:raspberry-pi-pico.launchTargetPath}' -x; exit $LASTEXITCODE"
+                ]
             }
         },
         {
