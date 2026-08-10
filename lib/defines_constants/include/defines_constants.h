@@ -51,14 +51,10 @@
 #define MOTOR4_ENABLE_PIN 6
 #define MOTOR4_IN1_PIN 7
 #define MOTOR4_IN2_PIN 8
-#define MOTOR4_ENC_A_PIN 2
-#define MOTOR4_ENC_B_PIN 3
 
 #define MOTOR5_ENABLE_PIN 11
 #define MOTOR5_IN1_PIN 10
 #define MOTOR5_IN2_PIN 9
-#define MOTOR5_ENC_A_PIN 4
-#define MOTOR5_ENC_B_PIN 5
 
 // Servo
 #define SERVO_GRIPPER_PIN 15
