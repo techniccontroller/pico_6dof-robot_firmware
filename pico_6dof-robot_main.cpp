@@ -20,6 +20,9 @@
 #define LED_PIN 25
 #endif
 
+constexpr uint32_t TELEMETRY_RATE_HZ = 30;
+constexpr uint64_t TELEMETRY_INTERVAL_US = 1000000 / TELEMETRY_RATE_HZ;
+
 
 void setLEDState(bool state)
 {
@@ -58,22 +61,22 @@ int main()
     printf("System Clock Frequency is %d Hz\n", clock_get_hz(clk_sys));
     printf("USB Clock Frequency is %d Hz\n", clock_get_hz(clk_usb));
     
-    uint32_t last_print_time = time_us_64() / 1000;
+    uint64_t last_telemetry_time_us = time_us_64();
     uint32_t last_step_time = time_us_64() / 1000;
 
     while (true) {
         
         comm.check_incoming_cmds();
 
-        // measure and print config every 500ms
-        uint32_t current_time = time_us_64() / 1000;
-        if((current_time - last_print_time > 2000))
+        uint64_t current_time_us = time_us_64();
+        if((current_time_us - last_telemetry_time_us) >= TELEMETRY_INTERVAL_US)
         {
             std::string robotDataJson = robot.getRobotDataAsJson();
             puts(robotDataJson.c_str());
-            last_print_time = current_time;
+            last_telemetry_time_us = current_time_us;
         }
 
+        uint32_t current_time = current_time_us / 1000;
         if((current_time - last_step_time > 10))
         {
             robot.step();

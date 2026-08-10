@@ -47,16 +47,17 @@
 #define MOTOR3_STEP_PIN 27
 #define MOTOR3_DIR_PIN 26
 
-// Motor 4 and Motor 5 working together for Joint 4 and Joint 5 (DC motors)
-#define MOTOR4_ENABLE_PIN 6
-#define MOTOR4_IN1_PIN 7
-#define MOTOR4_IN2_PIN 8
+// Motor 5 and Motor 6 work together for Joint 5 and Joint 6 (DC motors)
+#define MOTOR5_ENABLE_PIN 6
+#define MOTOR5_IN1_PIN 7
+#define MOTOR5_IN2_PIN 8
 
-#define MOTOR5_ENABLE_PIN 11
-#define MOTOR5_IN1_PIN 10
-#define MOTOR5_IN2_PIN 9
+#define MOTOR6_ENABLE_PIN 11
+#define MOTOR6_IN1_PIN 10
+#define MOTOR6_IN2_PIN 9
 
 // Servo
+#define SERVO_CONTINUE_J4_PIN 14
 #define SERVO_GRIPPER_PIN 15
 
 
@@ -67,8 +68,9 @@
 #define EEPROM_SIZE 512
 #define EEPROM_ADDR_ENCJ2 0
 #define EEPROM_ADDR_ENCJ3 4
-#define EEPROM_ADDR_ENCJ4 8
-#define EEPROM_ADDR_ENCJ5 12
+#define EEPROM_ADDR_ENCJ5 8
+#define EEPROM_ADDR_ENCJ6 12
+#define EEPROM_ADDR_ENCJ4 16
 
 
 /**
@@ -86,10 +88,10 @@
 #define LIMIT_J2_MAX 110.0f
 #define LIMIT_J3_MIN -120.0f
 #define LIMIT_J3_MAX 10.0f
-#define LIMIT_J4_MIN -160.0f
-#define LIMIT_J4_MAX 60.0f
-#define LIMIT_J5_MIN -60.0f
-#define LIMIT_J5_MAX 160.0f
+#define LIMIT_J5_MIN -160.0f
+#define LIMIT_J5_MAX 60.0f
+#define LIMIT_J6_MIN -60.0f
+#define LIMIT_J6_MAX 160.0f
 #define LIMIT_J2_J3_DIFF_MIN -5.0f
 #define LIMIT_J2_J3_DIFF_MAX 108.0f
 
@@ -108,6 +110,7 @@ enum Motor
     M3,
     M4,
     M5,
+    M6,
     MNONE = 99
 };
 
@@ -122,5 +125,6 @@ enum Joint
     J3,
     J4,
     J5,
+    J6,
     JNONE = 99
 };

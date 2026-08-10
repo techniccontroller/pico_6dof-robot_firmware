@@ -46,8 +46,8 @@ public:
     void addM1(AccelStepper *stepper1 = NULL, AS5600 *encoder1 = NULL);
     void addM2(AccelStepper *stepper2 = NULL, AS5600 *encoder2 = NULL);
     void addM3(AccelStepper *stepper3 = NULL, AS5600 *encoder3 = NULL);
-    void addM4(DCMotor *motor4 = NULL);
     void addM5(DCMotor *motor5 = NULL);
+    void addM6(DCMotor *motor6 = NULL);
 
     void stepStepper(AccelStepper * stepper, AS5600 * encoder, MotorControlState * state, float * setpoint_pos, float * setpoint_vel);
     void step();
@@ -57,32 +57,32 @@ public:
     void initializeM1();
     void initializeM2();
     void initializeM3();
-    void initializeM4();
     void initializeM5();
+    void initializeM6();
 
     void setM1Position(float position);
     void setM2Position(float position);
     void setM3Position(float position);
-    void setM4Position(float position);
     void setM5Position(float position);
+    void setM6Position(float position);
 
     void setM1Velocity(float velocity);
     void setM2Velocity(float velocity);
     void setM3Velocity(float velocity);
-    void setM4Velocity(float velocity);
     void setM5Velocity(float velocity);
+    void setM6Velocity(float velocity);
 
     void setM1PositionVelocity(float position, float velocity);
     void setM2PositionVelocity(float position, float velocity);
     void setM3PositionVelocity(float position, float velocity);
-    void setM4PositionVelocity(float position, float velocity);
     void setM5PositionVelocity(float position, float velocity);
+    void setM6PositionVelocity(float position, float velocity);
 
     AccelStepper *getM1();
     AccelStepper *getM2();
     AccelStepper *getM3();
-    DCMotor *getM4();
     DCMotor *getM5();
+    DCMotor *getM6();
 
     AS5600 *getE1();
     AS5600 *getE2();
@@ -92,28 +92,28 @@ private:
     float g_m1_setpoint_pos = 0;
     float g_m2_setpoint_pos = 0;
     float g_m3_setpoint_pos = 0;
-    float g_m4_setpoint_pos = 0;
     float g_m5_setpoint_pos = 0;
+    float g_m6_setpoint_pos = 0;
 
     float g_m1_setpoint_vel = 0;
     float g_m2_setpoint_vel = 0;
     float g_m3_setpoint_vel = 0;
-    float g_m4_setpoint_vel = 0;
     float g_m5_setpoint_vel = 0;
+    float g_m6_setpoint_vel = 0;
 
     MotorControlState g_m1_state = MotorControlState::DISABLED;
     MotorControlState g_m2_state = MotorControlState::DISABLED;
     MotorControlState g_m3_state = MotorControlState::DISABLED;
-    MotorControlState g_m4_state = MotorControlState::DISABLED;
     MotorControlState g_m5_state = MotorControlState::DISABLED;
+    MotorControlState g_m6_state = MotorControlState::DISABLED;
 
     StepperConfiguration *m_stepperConfiguration; /**< Stepper configuration. */
 
     AccelStepper *g_stepper1;
     AccelStepper *g_stepper2;
     AccelStepper *g_stepper3;
-    DCMotor *g_motor4;
     DCMotor *g_motor5;
+    DCMotor *g_motor6;
     AS5600 *g_encoder1;
     AS5600 *g_encoder2;
     AS5600 *g_encoder3;

@@ -28,14 +28,14 @@ void MotorController::addM3(AccelStepper *stepper3, AS5600 *encoder3)
     g_encoder3 = encoder3;
 }
 
-void MotorController::addM4(DCMotor *motor4)
-{
-    g_motor4 = motor4;
-}
-
 void MotorController::addM5(DCMotor *motor5)
 {
     g_motor5 = motor5;
+}
+
+void MotorController::addM6(DCMotor *motor6)
+{
+    g_motor6 = motor6;
 }
 
 AccelStepper *MotorController::getM1()
@@ -53,14 +53,14 @@ AccelStepper *MotorController::getM3()
     return g_stepper3;
 }
 
-DCMotor *MotorController::getM4()
-{
-    return g_motor4;
-}
-
 DCMotor *MotorController::getM5()
 {
     return g_motor5;
+}
+
+DCMotor *MotorController::getM6()
+{
+    return g_motor6;
 }
 
 AS5600 *MotorController::getE1()
@@ -142,7 +142,7 @@ void MotorController::step()
     stepStepper(g_stepper2, g_encoder2, &g_m2_state, &g_m2_setpoint_pos, &g_m2_setpoint_vel);
     stepStepper(g_stepper3, g_encoder3, &g_m3_state, &g_m3_setpoint_pos, &g_m3_setpoint_vel);
 
-    switch (g_m4_state)
+    switch (g_m5_state)
     {
     case DISABLED:
         break;
@@ -151,13 +151,13 @@ void MotorController::step()
     case POSITION_CONTROL:
         break;
     case VELOCITY_CONTROL:
-        g_motor4->setSpeed(g_m4_setpoint_vel);
+        g_motor5->setSpeed(g_m5_setpoint_vel);
         break;
     default:
         break;
     }
 
-    switch (g_m5_state)
+    switch (g_m6_state)
     {   
     case DISABLED:
         break;
@@ -166,7 +166,7 @@ void MotorController::step()
     case POSITION_CONTROL:
         break;
     case VELOCITY_CONTROL:
-        g_motor5->setSpeed(g_m5_setpoint_vel);
+        g_motor6->setSpeed(g_m6_setpoint_vel);
         break;
     default:
         break;
@@ -231,37 +231,37 @@ void MotorController::run()
         break;
     }
 
-    switch (g_m4_state)
+    switch (g_m5_state)
     {
     case DISABLED:
-        g_motor4->run();
+        g_motor5->run();
         break;
     case INITIALIZATION:
-        g_motor4->runSpeed();
+        g_motor5->runSpeed();
         break;
     case POSITION_CONTROL:
-        g_motor4->run();
+        g_motor5->run();
         break;
     case VELOCITY_CONTROL:
-        g_motor4->runSpeed();
+        g_motor5->runSpeed();
         break;      
     default:
         break;
     }
 
-    switch (g_m5_state)
+    switch (g_m6_state)
     {   
     case DISABLED:
-        g_motor5->run();
+        g_motor6->run();
         break;
     case INITIALIZATION:    
-        g_motor5->runSpeed();
+        g_motor6->runSpeed();
         break;
     case POSITION_CONTROL:
-        g_motor5->run();
+        g_motor6->run();
         break;
     case VELOCITY_CONTROL:
-        g_motor5->runSpeed();
+        g_motor6->runSpeed();
         break;
     default:
         break;
@@ -274,8 +274,8 @@ void MotorController::reset()
     g_m1_state = MotorControlState::DISABLED;
     g_m2_state = MotorControlState::DISABLED;
     g_m3_state = MotorControlState::DISABLED;
-    g_m4_state = MotorControlState::DISABLED;
     g_m5_state = MotorControlState::DISABLED;
+    g_m6_state = MotorControlState::DISABLED;
 }
 
 void MotorController::initializeM1()
@@ -293,14 +293,14 @@ void MotorController::initializeM3()
     g_m3_state = MotorControlState::INITIALIZATION;
 }
 
-void MotorController::initializeM4()
-{
-    //g_m4_state = MotorControlState::INITIALIZATION;
-}
-
 void MotorController::initializeM5()
 {
     //g_m5_state = MotorControlState::INITIALIZATION;
+}
+
+void MotorController::initializeM6()
+{
+    //g_m6_state = MotorControlState::INITIALIZATION;
 }
 
 void MotorController::setM1Position(float position)
@@ -327,20 +327,20 @@ void MotorController::setM3Position(float position)
     printf("M3 - setpoint: %f\n\r", g_m3_setpoint_pos);
 }
 
-void MotorController::setM4Position(float position)
-{
-    g_m4_state = MotorControlState::POSITION_CONTROL;
-    g_m4_setpoint_pos = position;
-    g_m4_setpoint_vel = 3000;
-    printf("M4 - setpoint: %f\n\r", g_m4_setpoint_pos);
-}
-
 void MotorController::setM5Position(float position)
 {
     g_m5_state = MotorControlState::POSITION_CONTROL;
     g_m5_setpoint_pos = position;
     g_m5_setpoint_vel = 3000;
     printf("M5 - setpoint: %f\n\r", g_m5_setpoint_pos);
+}
+
+void MotorController::setM6Position(float position)
+{
+    g_m6_state = MotorControlState::POSITION_CONTROL;
+    g_m6_setpoint_pos = position;
+    g_m6_setpoint_vel = 3000;
+    printf("M6 - setpoint: %f\n\r", g_m6_setpoint_pos);
 }
 
 void MotorController::setM1Velocity(float velocity)
@@ -361,16 +361,16 @@ void MotorController::setM3Velocity(float velocity)
     g_m3_setpoint_vel = velocity;
 }
 
-void MotorController::setM4Velocity(float velocity)
-{
-    g_m4_state = MotorControlState::VELOCITY_CONTROL;
-    g_m4_setpoint_vel = velocity;
-}
-
 void MotorController::setM5Velocity(float velocity)
 {
     g_m5_state = MotorControlState::VELOCITY_CONTROL;
     g_m5_setpoint_vel = velocity;
+}
+
+void MotorController::setM6Velocity(float velocity)
+{
+    g_m6_state = MotorControlState::VELOCITY_CONTROL;
+    g_m6_setpoint_vel = velocity;
 }
 
 void MotorController::setM1PositionVelocity(float position, float velocity)
@@ -397,18 +397,18 @@ void MotorController::setM3PositionVelocity(float position, float velocity)
     printf("M3 - setpoint pos: %f, vel: %f\n\r", g_m3_setpoint_pos, g_m3_setpoint_vel);
 }
 
-void MotorController::setM4PositionVelocity(float position, float velocity)
-{
-    g_m4_state = MotorControlState::POSITION_CONTROL;
-    g_m4_setpoint_pos = position;
-    g_m4_setpoint_vel = velocity;
-    printf("M4 - setpoint pos: %f, vel: %f\n\r", g_m4_setpoint_pos, g_m4_setpoint_vel);
-}
-
 void MotorController::setM5PositionVelocity(float position, float velocity)
 {
     g_m5_state = MotorControlState::POSITION_CONTROL;
     g_m5_setpoint_pos = position;
     g_m5_setpoint_vel = velocity;
     printf("M5 - setpoint pos: %f, vel: %f\n\r", g_m5_setpoint_pos, g_m5_setpoint_vel);
+}
+
+void MotorController::setM6PositionVelocity(float position, float velocity)
+{
+    g_m6_state = MotorControlState::POSITION_CONTROL;
+    g_m6_setpoint_pos = position;
+    g_m6_setpoint_vel = velocity;
+    printf("M6 - setpoint pos: %f, vel: %f\n\r", g_m6_setpoint_pos, g_m6_setpoint_vel);
 }

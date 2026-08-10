@@ -79,13 +79,14 @@ private:
     AS5600 m_encoderJ3; /**< Encoder J3. */
     AS5600 m_encoderJ4; /**< Encoder J4. */
     AS5600 m_encoderJ5; /**< Encoder J5. */
+    AS5600 m_encoderJ6; /**< Encoder J6. */
 
     AccelStepper m_stepperM1; /**< Stepper M1. */
     AccelStepper m_stepperM2; /**< Stepper M2. */
     AccelStepper m_stepperM3; /**< Stepper M3. */
 
-    DCMotor m_motorM4; /**< Motor M4. */
     DCMotor m_motorM5; /**< Motor M5. */
+    DCMotor m_motorM6; /**< Motor M6. */
 
     JointController m_jointController; /**< Joint controller. */
     MotorController m_motorController;           /**< MotorController. */

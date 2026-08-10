@@ -5,16 +5,19 @@ import sys
 import time
 import json
 
-COM_PORT_PICO_DEFAULT = "COM5"
+COM_PORT_PICO_DEFAULT = "COM15"
 
-joint_names = ['J1', 'J2', 'J3', 'J4', 'J5']
-motor_names = ['M1', 'M2', 'M3', 'M4', 'M5']
+joint_names = ['J1', 'J2', 'J3', 'J4', 'J5', 'J6']
+motor_names = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6']
+encoder_joint_names = ['J2', 'J3', 'J4', 'J5', 'J6']
 
 stop_threads = False
 active_joint_motor = ""
 
 robot_data = dict()
 all_lbls_joints = []
+encoder_bars = []
+encoder_value_labels = []
 lbl_current_pose = sg.Text("Current pose:")
 
 def thread_function(name):
@@ -23,7 +26,7 @@ def thread_function(name):
     Args:
         name (string): name of thread (currently not used)
     """
-    global stop_threads, ser, robot_data
+    global stop_threads, ser, window
     while not stop_threads:
         while ser.in_waiting:
             try:
@@ -34,12 +37,12 @@ def thread_function(name):
                     try:
                         json_data = json.loads(data_in)
                         if "robot_data" in json_data:
-                            robot_data = json_data["robot_data"]
-                            update_lbls()
+                            window.write_event_value('-ROBOT_DATA-', json_data["robot_data"])
                     except json.JSONDecodeError:
                         print("Error decoding JSON data")
             except UnicodeDecodeError:
                 print("Error decoding incoming data")
+        time.sleep(0.001)
 
 def thread_square(name):
 
@@ -79,19 +82,19 @@ def thread_demo(name):
 
     print("Starting demo")
 
-    ser.write("VEL_CONFIG(0,0,0,0,0,30)\n".encode())
+    ser.write("VEL_CONFIG(0,0,0,0,0,0,30)\n".encode())
     time.sleep(3)
 
-    ser.write("VEL_CONFIG(50,0,10,20,0,40)\n".encode())
+    ser.write("VEL_CONFIG(50,0,10,0,20,0,40)\n".encode())
     time.sleep(2)
 
-    ser.write("VEL_CONFIG(0,0,-20,-40,0,40)\n".encode())
+    ser.write("VEL_CONFIG(0,0,-20,0,-40,0,40)\n".encode())
     time.sleep(2)
 
-    ser.write("VEL_CONFIG(-50,0,10,20,0,40)\n".encode())
+    ser.write("VEL_CONFIG(-50,0,10,0,20,0,40)\n".encode())
     time.sleep(2)
 
-    ser.write("VEL_CONFIG(0,0,0,-90,0,20)\n".encode())
+    ser.write("VEL_CONFIG(0,0,0,0,-90,0,20)\n".encode())
 
     print("Demo finished")
 
@@ -187,6 +190,26 @@ def create_lbls_joint(names):
         all_lbls_manual.append(sg.Text("-", size=4))
     return all_lbls_manual
 
+def create_encoder_layout(names):
+    bars = []
+    value_labels = []
+    layout = []
+
+    for name in names:
+        bar = sg.ProgressBar(
+            360,
+            orientation='h',
+            size=(35, 12),
+            bar_color=('#3b82f6', '#dbeafe'),
+            key='-ENCODER_BAR_' + name + '-'
+        )
+        value_label = sg.Text('--.- deg', size=(9, 1), justification='right')
+        bars.append(bar)
+        value_labels.append(value_label)
+        layout.append([sg.Text(name, size=(3, 1)), bar, value_label])
+
+    return layout, bars, value_labels
+
 def create_txts_motor(names):    
     all_txts_manual = []
     for mo in names:
@@ -225,10 +248,18 @@ def create_btn_layout_motor(names, btns, txts):
     return button_layout
 
 def update_lbls():
-    global robot_data, all_lbls_joints, lbl_current_pose
+    global robot_data, all_lbls_joints, encoder_bars, encoder_value_labels, lbl_current_pose
     for i in range(len(all_lbls_joints)):
         if "config" in robot_data:
             all_lbls_joints[i].update(int(robot_data["config"][i]))
+
+    if "encoder_positions" in robot_data:
+        encoder_positions = robot_data["encoder_positions"]
+        for i in range(min(len(encoder_positions), len(encoder_bars))):
+            angle = float(encoder_positions[i])
+            bar_value = max(0.0, min(360.0, angle))
+            encoder_bars[i].update(current_count=bar_value)
+            encoder_value_labels[i].update(f"{angle:6.1f} deg")
     
     if "pose" in robot_data and "config" in robot_data:
         pose = robot_data["pose"]
@@ -261,13 +292,14 @@ if __name__ == "__main__":
     all_txts_joints = create_txts_joint(joint_names)
     all_txts_motors = create_txts_motor(motor_names)
     all_lbls_joints = create_lbls_joint(joint_names)
+    encoder_layout, encoder_bars, encoder_value_labels = create_encoder_layout(encoder_joint_names)
 
     # create layouts
     button_layout_joints = create_btn_layout_joint(joint_names, all_btns_joints, all_txts_joints, all_lbls_joints)
     button_layout_motors = create_btn_layout_motor(motor_names, all_btns_motors, all_txts_motors)
     
     
-    txt_command = sg.Input(default_text="VEL_CONFIG(j1,j2,j3,j4,j5,spd)", size=30, tooltip="Possible commands: COORD(x,y,z), CONFIG(j1,j2,j3,j4,j5), VEL_CONFIG(j1,j2,j3,j4,j5,spd), PID_J4(p,i,d), PID_J5(p,i,d)")
+    txt_command = sg.Input(default_text="VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd)", size=35, tooltip="Possible commands: COORD(x,y,z), CONFIG(j1,j2,j3,j4,j5,j6), VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd), PID_J5(p,i,d), PID_J6(p,i,d)")
     btn_send_command = sg.Button("SEND", size=7)
     btn_save_zeros = sg.Button("SAVE ZEROS", size=15)
     btn_load_zeros = sg.Button("LOAD ZEROS", size=15)
@@ -285,7 +317,9 @@ if __name__ == "__main__":
 
     container_status_layout = sg.Column([       [sg.HorizontalSeparator()],
                                                 [sg.Text("Status:", size=(60, 2), justification='center')], 
-                                                [lbl_current_pose]], element_justification='center')
+                                                [lbl_current_pose],
+                                                [sg.Text("Corrected magnetic encoder positions (0-360 deg):")],
+                                                [sg.Column(encoder_layout, element_justification='left')]], element_justification='center')
 
     container_btn_layout_joints = sg.Column([   [sg.HorizontalSeparator()],
                                                 [sg.Text("Joint control:", size=(60, 2), justification='center')], 
@@ -326,8 +360,8 @@ if __name__ == "__main__":
                 [container_btn_layout_motors],
                 ]
 
-    # create the window
-    window = sg.Window("StepperMotorControl", layout, margins=(50, 50), finalize=True)
+    # Open near the top-left so the title bar remains accessible.
+    window = sg.Window("StepperMotorControl", layout, margins=(50, 50), location=(20, 20), finalize=True)
     
     container_btn_layout_joints.hide_row()
     container_btn_layout_motors.hide_row()
@@ -348,6 +382,11 @@ if __name__ == "__main__":
         # end program if user closes window
         if event == sg.WIN_CLOSED:
             break
+
+        if event == '-ROBOT_DATA-':
+            robot_data = values[event]
+            update_lbls()
+            continue
         
         # filter receiving events from window and act accordently
         event = str(event)
@@ -366,10 +405,10 @@ if __name__ == "__main__":
             x.start()
         
         elif event == "MOVE TO ZERO":
-            ser.write("CONFIG(0,0,0,0,0)\n".encode())
+            ser.write("CONFIG(0,0,0,0,0,0)\n".encode())
 
         elif event == "MOVE TO STORE":
-            ser.write("CONFIG(0,-51,-4,-90,0)\n".encode())
+            ser.write("CONFIG(0,-51,-4,0,-90,0)\n".encode())
         
         elif event == "INIT J2":
             send_init_cmd("J2")

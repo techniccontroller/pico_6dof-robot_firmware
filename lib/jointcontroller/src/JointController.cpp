@@ -24,14 +24,14 @@ void JointController::addM3(AccelStepper *stepper3)
     m_stepper3 = stepper3;
 }
 
-void JointController::addM4(DCMotor *motor4)
-{
-    m_motor4 = motor4;
-}
-
 void JointController::addM5(DCMotor *motor5)
 {
     m_motor5 = motor5;
+}
+
+void JointController::addM6(DCMotor *motor6)
+{
+    m_motor6 = motor6;
 }
 
 void JointController::addE1(AS5600 *encoder1)
@@ -59,13 +59,18 @@ void JointController::addE5(AS5600 *encoder5)
     m_encoder5 = encoder5;
 }
 
+void JointController::addE6(AS5600 *encoder6)
+{
+    m_encoder6 = encoder6;
+}
+
 void JointController::initialize()
 {
     initializeJ1();
     initializeJ2();
     initializeJ3();
-    initializeJ4();
     initializeJ5();
+    initializeJ6();
 }
 
 /**
@@ -146,6 +151,10 @@ std::vector<float> JointController::getConfiguration()
         config.push_back(m_encoder5->getCorrectedAngleDeg());
     else
         config.push_back(0);
+    if(m_encoder6 != NULL)
+        config.push_back(m_encoder6->getCorrectedAngleDeg());
+    else
+        config.push_back(0);
     return config;
 }
 
@@ -214,7 +223,7 @@ float JointController::getDiffAngleJ2J3(){
 }
 
 /**
- * @brief Performs a single step of the joint controller for a single DC motor (either motor4 or motor5)
+ * @brief Performs a single step of the joint controller for a single DC motor (either motor5 or motor6)
  * 
  * @param motor     The DC motor of the joint to control
  * @param encoder   The encoder to read the current position from
@@ -224,10 +233,10 @@ float JointController::getDiffAngleJ2J3(){
  * @param pid_d     The derivative gain of the PID controller
  * @param setpoint_pos  The current position setpoint of the joint to control [deg]
  * @param setpoint_vel  The current velocity setpoint of the joint to control [PWM]
- * @param speed_m4  The output speed of the motor4 [PWM] (as return value)
  * @param speed_m5  The output speed of the motor5 [PWM] (as return value)
+ * @param speed_m6  The output speed of the motor6 [PWM] (as return value)
  */
-void JointController::stepDCMotor(DCMotor * motor, AS5600 * encoder, JointControlState * state, float pid_p, float pid_i, float pid_d, float * setpoint_pos, float * setpoint_vel, float * speed_m4, float * speed_m5){
+void JointController::stepDCMotor(DCMotor * motor, AS5600 * encoder, JointControlState * state, float pid_p, float pid_i, float pid_d, float * setpoint_pos, float * setpoint_vel, float * speed_m5, float * speed_m6){
     
     float angle = 0;
     float speed = 0;
@@ -235,8 +244,8 @@ void JointController::stepDCMotor(DCMotor * motor, AS5600 * encoder, JointContro
     switch (*state)
     {
     case DISABLED:
-        *speed_m4 = 0;
         *speed_m5 = 0;
+        *speed_m6 = 0;
         break;
     case INITIALIZATION:
         *state = JointControlState::POSITION_CONTROL;
@@ -267,38 +276,18 @@ void JointController::stepDCMotor(DCMotor * motor, AS5600 * encoder, JointContro
             speed = p * diff + i * integral + d * derivative;
             speed = std::clamp(speed, -*setpoint_vel, *setpoint_vel);
             speed = std::clamp(speed, -MAX_VEL_DCMOTOR, MAX_VEL_DCMOTOR);
-            *speed_m4 = -speed;
             *speed_m5 = -speed;
+            *speed_m6 = -speed;
         }
         else {
             *state = JointControlState::DISABLED;
         }
         break;
     case VELOCITY_CONTROL:
-        *speed_m4 = *setpoint_vel;
         *speed_m5 = *setpoint_vel;
+        *speed_m6 = *setpoint_vel;
         break;
     }
-}
-
-/**
- * @brief Check if the joint limit of J4 is reached
- * 
- * @return true     If the joint limit is reached
- * @return false    If the joint limit is not reached
- */
-bool JointController::isJointLimitReachedJ4(float speed_m4_j4){
-    float angle = m_encoder4->readAngleDeg();
-    if(angle > 180){
-        angle = angle - 360;
-    }
-    if(angle < LIMIT_J4_MIN && speed_m4_j4 > 0){
-        return true;
-    }
-    else if(angle > LIMIT_J4_MAX && speed_m4_j4 < 0){
-        return true;
-    }
-    return false;
 }
 
 /**
@@ -321,6 +310,26 @@ bool JointController::isJointLimitReachedJ5(float speed_m5_j5){
     return false;
 }
 
+/**
+ * @brief Check if the joint limit of J6 is reached
+ * 
+ * @return true     If the joint limit is reached
+ * @return false    If the joint limit is not reached
+ */
+bool JointController::isJointLimitReachedJ6(float speed_m6_j6){
+    float angle = m_encoder6->readAngleDeg();
+    if(angle > 180){
+        angle = angle - 360;
+    }
+    if(angle < LIMIT_J6_MIN && speed_m6_j6 > 0){
+        return true;
+    }
+    else if(angle > LIMIT_J6_MAX && speed_m6_j6 < 0){
+        return true;
+    }
+    return false;
+}
+
 bool JointController::isAllEncoderStatusValid(){
     if(m_encoder1 != NULL && m_encoder1->getStatus() != 32){
         return false;
@@ -335,6 +344,9 @@ bool JointController::isAllEncoderStatusValid(){
         return false;
     }
     if(m_encoder5 != NULL && m_encoder5->getStatus() != 32){
+        return false;
+    }
+    if(m_encoder6 != NULL && m_encoder6->getStatus() != 32){
         return false;
     }
     return true;
@@ -352,31 +364,31 @@ void JointController::step()
         m_state_j1 = JointControlState::DISABLED;
         m_state_j2 = JointControlState::DISABLED;
         m_state_j3 = JointControlState::DISABLED;
-        m_state_j4 = JointControlState::DISABLED;
         m_state_j5 = JointControlState::DISABLED;
+        m_state_j6 = JointControlState::DISABLED;
     }
     if(encodersValid) checkJointLimitsJ2J3();
     stepStepper(m_stepper1, m_encoder1, &m_state_j1, &m_setpoint_pos_j1, &m_setpoint_vel_j1);
     stepStepper(m_stepper2, m_encoder2, &m_state_j2, &m_setpoint_pos_j2, &m_setpoint_vel_j2);
     stepStepper(m_stepper3, m_encoder3, &m_state_j3, &m_setpoint_pos_j3, &m_setpoint_vel_j3);
 
-    float speed_m4_j4 = 0;
-    float speed_m4_j5 = 0;
-    float speed_m5_j4 = 0;
     float speed_m5_j5 = 0;
+    float speed_m5_j6 = 0;
+    float speed_m6_j5 = 0;
+    float speed_m6_j6 = 0;
 
-    stepDCMotor(m_motor4, m_encoder4, &m_state_j4, pid_p_j4, pid_i_j4, pid_d_j4, &m_setpoint_pos_j4, &m_setpoint_vel_j4, &speed_m4_j4, &speed_m5_j4);
-    if(encodersValid && isJointLimitReachedJ4(speed_m4_j4)){
-        speed_m4_j4 = 0;
-        speed_m5_j4 = 0;
-    }
-    stepDCMotor(m_motor5, m_encoder5, &m_state_j5, pid_p_j5, pid_i_j5, pid_d_j5, &m_setpoint_pos_j5, &m_setpoint_vel_j5, &speed_m4_j5, &speed_m5_j5);
+    stepDCMotor(m_motor5, m_encoder5, &m_state_j5, pid_p_j5, pid_i_j5, pid_d_j5, &m_setpoint_pos_j5, &m_setpoint_vel_j5, &speed_m5_j5, &speed_m6_j5);
     if(encodersValid && isJointLimitReachedJ5(speed_m5_j5)){
-        speed_m4_j5 = 0;
         speed_m5_j5 = 0;
+        speed_m6_j5 = 0;
     }
-    m_motor4->setSpeed(speed_m4_j4 + speed_m4_j5);
-    m_motor5->setSpeed(speed_m5_j4 - speed_m5_j5);
+    stepDCMotor(m_motor6, m_encoder6, &m_state_j6, pid_p_j6, pid_i_j6, pid_d_j6, &m_setpoint_pos_j6, &m_setpoint_vel_j6, &speed_m5_j6, &speed_m6_j6);
+    if(encodersValid && isJointLimitReachedJ6(speed_m6_j6)){
+        speed_m5_j6 = 0;
+        speed_m6_j6 = 0;
+    }
+    m_motor5->setSpeed(speed_m5_j5 + speed_m5_j6);
+    m_motor6->setSpeed(speed_m6_j5 - speed_m6_j6);
 }
 
 /**
@@ -441,8 +453,8 @@ void JointController::run()
         break;
     }
 
-    m_motor4->runSpeed();
     m_motor5->runSpeed();
+    m_motor6->runSpeed();
 }
 
 void JointController::reset()
@@ -450,8 +462,8 @@ void JointController::reset()
     m_state_j1 = JointControlState::DISABLED;
     m_state_j2 = JointControlState::DISABLED;
     m_state_j3 = JointControlState::DISABLED;
-    m_state_j4 = JointControlState::DISABLED;
     m_state_j5 = JointControlState::DISABLED;
+    m_state_j6 = JointControlState::DISABLED;
 }
 
 void JointController::initializeJ1()
@@ -469,14 +481,14 @@ void JointController::initializeJ3()
     m_state_j3 = JointControlState::INITIALIZATION;
 }
 
-void JointController::initializeJ4()
-{
-    m_state_j4 = JointControlState::INITIALIZATION;
-}
-
 void JointController::initializeJ5()
 {
     m_state_j5 = JointControlState::INITIALIZATION;
+}
+
+void JointController::initializeJ6()
+{
+    m_state_j6 = JointControlState::INITIALIZATION;
 }
 
 void JointController::zeroJ1()
@@ -517,6 +529,13 @@ void JointController::zeroJ5()
     }
 }
 
+void JointController::zeroJ6()
+{
+    if(m_encoder6 != NULL){
+        m_encoder6->setZero();
+    }
+}
+
 /**
  * @brief Set the J1 Position
  * 
@@ -554,18 +573,6 @@ void JointController::setJ3Position(float position)
 }
 
 /**
- * @brief Set the J4 Position
- * 
- * @param position  The position to move to [deg]
- */
-void JointController::setJ4Position(float position)
-{
-    m_state_j4 = JointControlState::POSITION_CONTROL;
-    m_setpoint_pos_j4 = position;
-    m_setpoint_vel_j4 = MAX_VEL_DCMOTOR;
-}
-
-/**
  * @brief Set the J5 Position
  * 
  * @param position  The position to move to [deg]
@@ -575,6 +582,18 @@ void JointController::setJ5Position(float position)
     m_state_j5 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j5 = position;
     m_setpoint_vel_j5 = MAX_VEL_DCMOTOR;
+}
+
+/**
+ * @brief Set the J6 Position
+ * 
+ * @param position  The position to move to [deg]
+ */
+void JointController::setJ6Position(float position)
+{
+    m_state_j6 = JointControlState::POSITION_CONTROL;
+    m_setpoint_pos_j6 = position;
+    m_setpoint_vel_j6 = MAX_VEL_DCMOTOR;
 }
 
 /**
@@ -611,17 +630,6 @@ void JointController::setJ3Velocity(float velocity)
 }
 
 /**
- * @brief Set the J4 Velocity
- * 
- * @param velocity  The velocity to move at [PWM]
- */
-void JointController::setJ4Velocity(float velocity)
-{
-    m_state_j4 = JointControlState::VELOCITY_CONTROL;
-    m_setpoint_vel_j4 = velocity;
-}
-
-/**
  * @brief Set the J5 Velocity
  * 
  * @param velocity  The velocity to move at [PWM]
@@ -630,6 +638,17 @@ void JointController::setJ5Velocity(float velocity)
 {
     m_state_j5 = JointControlState::VELOCITY_CONTROL;
     m_setpoint_vel_j5 = velocity;
+}
+
+/**
+ * @brief Set the J6 Velocity
+ * 
+ * @param velocity  The velocity to move at [PWM]
+ */
+void JointController::setJ6Velocity(float velocity)
+{
+    m_state_j6 = JointControlState::VELOCITY_CONTROL;
+    m_setpoint_vel_j6 = velocity;
 }
 
 /**
@@ -672,19 +691,6 @@ void JointController::setJ3PositionVelocity(float position, float velocity)
 }
 
 /**
- * @brief Set the J4 Position and Velocity
- * 
- * @param position  The position to move to [deg]
- * @param velocity  The velocity to move at [PWM]
- */
-void JointController::setJ4PositionVelocity(float position, float velocity)
-{
-    m_state_j4 = JointControlState::POSITION_CONTROL;
-    m_setpoint_pos_j4 = position;
-    m_setpoint_vel_j4 = velocity;
-}
-
-/**
  * @brief Set the J5 Position and Velocity
  * 
  * @param position  The position to move to [deg]
@@ -698,17 +704,16 @@ void JointController::setJ5PositionVelocity(float position, float velocity)
 }
 
 /**
- * @brief Set the J4 PID parameters
+ * @brief Set the J6 Position and Velocity
  * 
- * @param p     Proportional gain
- * @param i     Integral gain
- * @param d     Derivative gain
+ * @param position  The position to move to [deg]
+ * @param velocity  The velocity to move at [PWM]
  */
-void JointController::setJ4PID(float p, float i, float d)
+void JointController::setJ6PositionVelocity(float position, float velocity)
 {
-    pid_p_j4 = p;
-    pid_i_j4 = i;
-    pid_d_j4 = d;
+    m_state_j6 = JointControlState::POSITION_CONTROL;
+    m_setpoint_pos_j6 = position;
+    m_setpoint_vel_j6 = velocity;
 }
 
 /**
@@ -723,6 +728,20 @@ void JointController::setJ5PID(float p, float i, float d)
     pid_p_j5 = p;
     pid_i_j5 = i;
     pid_d_j5 = d;
+}
+
+/**
+ * @brief Set the J6 PID parameters
+ * 
+ * @param p     Proportional gain
+ * @param i     Integral gain
+ * @param d     Derivative gain
+ */
+void JointController::setJ6PID(float p, float i, float d)
+{
+    pid_p_j6 = p;
+    pid_i_j6 = i;
+    pid_d_j6 = d;
 }
 
 /**
@@ -783,9 +802,9 @@ void JointController::moveToConfiguration(std::vector<float> config, float veloc
         setJ3PositionVelocity(config[2], speed3);
     }
 
-    // Check length of config vector if it also contains J4 and J5
-    if(config.size() > 3){
-        setJ4Position(config[3]);
+    // J4 (config[3]) is intentionally ignored until its actuator is implemented.
+    if(config.size() >= 6){
         setJ5Position(config[4]);
+        setJ6Position(config[5]);
     }
 }

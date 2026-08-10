@@ -30,13 +30,14 @@ Robot::Robot(void):
     m_encoderJ2(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 7, TCAADDR), 
     m_encoderJ3(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 6, TCAADDR),
     m_encoderJ4(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 5, TCAADDR),
-    m_encoderJ5(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 4, TCAADDR),
+    m_encoderJ5(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 3, TCAADDR),
+    m_encoderJ6(I2C_PORT0, I2C_SCL0_PIN, I2C_SDA0_PIN, ASADDR, 4, TCAADDR),
     m_stepperM1(AccelStepper::DRIVER, MOTOR1_STEP_PIN, MOTOR1_DIR_PIN),
     m_stepperM2(AccelStepper::DRIVER, MOTOR2_STEP_PIN, MOTOR2_DIR_PIN),
     m_stepperM3(AccelStepper::DRIVER, MOTOR3_STEP_PIN, MOTOR3_DIR_PIN),
     m_stepperConfiguration(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, MICROSTEP_RESOLUTION, 60.0/16.0 * 60.0/16.0),
-    m_motorM4(MOTOR4_ENABLE_PIN, MOTOR4_IN1_PIN, MOTOR4_IN2_PIN),
     m_motorM5(MOTOR5_ENABLE_PIN, MOTOR5_IN1_PIN, MOTOR5_IN2_PIN),
+    m_motorM6(MOTOR6_ENABLE_PIN, MOTOR6_IN1_PIN, MOTOR6_IN2_PIN),
     m_jointController(&m_stepperConfiguration),
     m_motorController(&m_stepperConfiguration),
     m_gripper(SERVO_GRIPPER_PIN)
@@ -53,20 +54,21 @@ Robot::Robot(void):
     m_motorController.addM1(&m_stepperM1, NULL);
     m_motorController.addM2(&m_stepperM2, &m_encoderJ2);
     m_motorController.addM3(&m_stepperM3, &m_encoderJ3);
-    m_motorController.addM4(&m_motorM4);
     m_motorController.addM5(&m_motorM5);
+    m_motorController.addM6(&m_motorM6);
 
     m_jointController.addM1(&m_stepperM1);
     m_jointController.addM2(&m_stepperM2);
     m_jointController.addM3(&m_stepperM3);
-    m_jointController.addM4(&m_motorM4);
     m_jointController.addM5(&m_motorM5);
+    m_jointController.addM6(&m_motorM6);
 
     m_jointController.addE1(NULL);
     m_jointController.addE2(&m_encoderJ2);
     m_jointController.addE3(&m_encoderJ3);
     m_jointController.addE4(&m_encoderJ4);
     m_jointController.addE5(&m_encoderJ5);
+    m_jointController.addE6(&m_encoderJ6);
 
     initEEPROM();
 }
@@ -125,6 +127,7 @@ void Robot::loadAllSensorCalibrationData()
     loadSensorCalibrationData(&m_encoderJ3, EEPROM_ADDR_ENCJ3);
     loadSensorCalibrationData(&m_encoderJ4, EEPROM_ADDR_ENCJ4);
     loadSensorCalibrationData(&m_encoderJ5, EEPROM_ADDR_ENCJ5);
+    loadSensorCalibrationData(&m_encoderJ6, EEPROM_ADDR_ENCJ6);
 }
 
 void Robot::loadSensorCalibrationData(AS5600 *encoder, int addr)
@@ -149,6 +152,7 @@ void Robot::writeAllSensorCalibrationData()
     writeSensorCalibrationData(&m_encoderJ3, EEPROM_ADDR_ENCJ3);
     writeSensorCalibrationData(&m_encoderJ4, EEPROM_ADDR_ENCJ4);
     writeSensorCalibrationData(&m_encoderJ5, EEPROM_ADDR_ENCJ5);
+    writeSensorCalibrationData(&m_encoderJ6, EEPROM_ADDR_ENCJ6);
 }
 
 void Robot::writeSensorCalibrationData(AS5600 *encoder, int addr)
@@ -219,6 +223,9 @@ float Robot::getJointPosition(int joint)
         case Joint::J5:
         return config[4];
         break;
+        case Joint::J6:
+        return config[5];
+        break;
     }
     return 0.0f;
 }
@@ -235,11 +242,11 @@ std::string Robot::getRobotDataAsJson()
     jsonObj["robot_data"]["pose"] = pose;
 
     jsonObj["robot_data"]["encoder_positions"] = {m_encoderJ2.getCorrectedAngleDeg(), m_encoderJ3.getCorrectedAngleDeg(),
-                                     m_encoderJ4.getCorrectedAngleDeg(), m_encoderJ5.getCorrectedAngleDeg()};
+                                     m_encoderJ4.getCorrectedAngleDeg(), m_encoderJ5.getCorrectedAngleDeg(), m_encoderJ6.getCorrectedAngleDeg()};
     jsonObj["robot_data"]["encoder_positions_raw"] = {m_encoderJ2.readAngleDeg(), m_encoderJ3.readAngleDeg(),
-                                         m_encoderJ4.readAngleDeg(), m_encoderJ5.readAngleDeg()};
+                                         m_encoderJ4.readAngleDeg(), m_encoderJ5.readAngleDeg(), m_encoderJ6.readAngleDeg()};
     jsonObj["robot_data"]["encoder_status"] = {m_encoderJ2.getStatus(), m_encoderJ3.getStatus(),
-                                  m_encoderJ4.getStatus(), m_encoderJ5.getStatus()};
+                                  m_encoderJ4.getStatus(), m_encoderJ5.getStatus(), m_encoderJ6.getStatus()};
     jsonObj["robot_data"]["diffAngleJ2J3"] = m_jointController.getDiffAngleJ2J3();
     jsonObj["robot_data"]["speeds"] = {m_stepperM1.speed(), m_stepperM2.speed(), m_stepperM3.speed()};
     roundJsonFloatsToThreeDecimals(jsonObj);
@@ -249,11 +256,11 @@ std::string Robot::getRobotDataAsJson()
 void Robot::setPID(int joint, float p, float i, float d)
 {
     switch(joint){
-        case Joint::J4:
-        m_jointController.setJ4PID(p, i, d);
-        break;
         case Joint::J5:
         m_jointController.setJ5PID(p, i, d);
+        break;
+        case Joint::J6:
+        m_jointController.setJ6PID(p, i, d);
         break;
     }
 }
@@ -299,18 +306,19 @@ std::vector<float> Robot::inverseKinematics(float x, float y, float z, GripperPo
     result.push_back(m0 * 180.0 / M_PI);
     result.push_back(m1 * 180.0 / M_PI);
     result.push_back(-m2 * 180.0 / M_PI);
+    result.push_back(0.0f); // J4 is intentionally left unimplemented for now.
 
     if(gripperPose == GripperPose::DOWN){
-        float m3 = -(M_PI/2 - m2);
-        float m4 = m0;
-        result.push_back(m3 * 180.0 / M_PI);
-        result.push_back(m4 * 180.0 / M_PI);
+        float j5 = -(M_PI/2 - m2);
+        float j6 = m0;
+        result.push_back(j5 * 180.0 / M_PI);
+        result.push_back(j6 * 180.0 / M_PI);
     }
     else if(gripperPose == GripperPose::LEVEL){
-        float m3 = m2;
-        float m4 = 0;
-        result.push_back(m3 * 180.0 / M_PI);
-        result.push_back(m4 * 180.0 / M_PI);
+        float j5 = m2;
+        float j6 = 0;
+        result.push_back(j5 * 180.0 / M_PI);
+        result.push_back(j6 * 180.0 / M_PI);
     }
     return result;
 }
@@ -363,11 +371,11 @@ void Robot::initJoint(int joint){
         case Joint::J3:
         m_jointController.initializeJ3();
         break;
-        case Joint::J4:
-        m_jointController.initializeJ4();
-        break;
         case Joint::J5:
         m_jointController.initializeJ5();
+        break;
+        case Joint::J6:
+        m_jointController.initializeJ6();
         break;
     }
 }
@@ -389,6 +397,9 @@ void Robot::zeroJoint(int joint){
         case Joint::J5:
         m_jointController.zeroJ5();
         break;
+        case Joint::J6:
+        m_jointController.zeroJ6();
+        break;
     }
 }
 
@@ -409,11 +420,11 @@ void Robot::setMotorVelocity(int motor, float velocity){
         case Motor::M3:
         m_motorController.setM3Velocity(velocity);
         break;
-        case Motor::M4:
-        m_motorController.setM4Velocity(velocity);
-        break;
         case Motor::M5:
         m_motorController.setM5Velocity(velocity);
+        break;
+        case Motor::M6:
+        m_motorController.setM6Velocity(velocity);
         break;
     }
 }
@@ -435,11 +446,11 @@ void Robot::setJointVelocity(int joint, float velocity){
         case Joint::J3:
         m_jointController.setJ3Velocity(velocity);
         break;
-        case Joint::J4:
-        m_jointController.setJ4Velocity(velocity);
-        break;
         case Joint::J5:
         m_jointController.setJ5Velocity(velocity);
+        break;
+        case Joint::J6:
+        m_jointController.setJ6Velocity(velocity);
         break;
     }
 }
@@ -455,11 +466,11 @@ void Robot::setJointPositionVelocity(int joint, float position, float velocity){
         case Joint::J3:
         m_jointController.setJ3PositionVelocity(position, velocity);
         break;
-        case Joint::J4:
-        m_jointController.setJ4PositionVelocity(position, velocity);
-        break;
         case Joint::J5:
         m_jointController.setJ5PositionVelocity(position, velocity);
+        break;
+        case Joint::J6:
+        m_jointController.setJ6PositionVelocity(position, velocity);
         break;
     }
 }
@@ -475,11 +486,11 @@ void Robot::setJointPosition(int joint, float position){
         case Joint::J3:
         m_jointController.setJ3Position(position);
         break;
-        case Joint::J4:
-        m_jointController.setJ4Position(position);
-        break;
         case Joint::J5:
         m_jointController.setJ5Position(position);
+        break;
+        case Joint::J6:
+        m_jointController.setJ6Position(position);
         break;
     }
 }
