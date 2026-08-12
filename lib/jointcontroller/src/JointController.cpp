@@ -228,53 +228,53 @@ std::vector<float> JointController::getConfiguration()
  * 
  */
 void JointController::checkJointLimitsJ2J3(){
-    float angle_J2 = normalizeAngle180(m_encoder2->getCorrectedAngleDeg());
-    float angle_J3 = getDiffAngleJ2J3();
-    float angleDiff = angle_J3;
-    float contributionJ2 = J2_ENCODER_DRIVE_DIRECTION *
-        m_stepperConfiguration->stepsToAngleDeg(m_stepper2->speed());
-    float contributionJ3 = J3_ENCODER_DRIVE_DIRECTION *
-        m_stepperConfiguration->stepsToAngleDeg(m_stepper3->speed());
-    float j2ContributionToJ3 =
-        J2_J3_PARALLEL_COUPLING_RATIO * contributionJ2;
-    if(angleDiff > LIMIT_J2_J3_DIFF_MAX){
-        // warning - robot reached the max limit between J2 and J3
+    if(m_encoder2 == NULL || m_encoder3 == NULL){
+        return;
+    }
 
-        if(j2ContributionToJ3 > 0.0f){
-            m_state_j2 = JointControlState::DISABLED;
-        }
-        if(contributionJ3 > 0.0f){
-            m_state_j3 = JointControlState::DISABLED;
-        }
+    float encoderE2 = normalizeAngle180(m_encoder2->getCorrectedAngleDeg());
+    float encoderE3 = normalizeAngle180(m_encoder3->getCorrectedAngleDeg());
+    // Difference between E2 and the mechanically inverted E3 coordinate:
+    // difference = E2 - (-E3) = E2 + E3.
+    float jointDifference = normalizeAngle180(
+        encoderE2 - J2_J3_DIFF_E3_DIRECTION * encoderE3);
+
+    float encoderVelocityE2 = J2_ENCODER_DRIVE_DIRECTION *
+        m_stepperConfiguration->stepsToAngleDeg(m_stepper2->speed());
+    float encoderVelocityE3 = J3_ENCODER_DRIVE_DIRECTION *
+        m_stepperConfiguration->stepsToAngleDeg(m_stepper3->speed());
+
+    float differenceVelocityFromM2 = encoderVelocityE2;
+    float differenceVelocityFromM3 =
+        -J2_J3_DIFF_E3_DIRECTION * encoderVelocityE3;
+
+    auto movesFartherOutside = [](float value, float minimum, float maximum,
+                                  float contribution){
+        return (value <= minimum && contribution < 0.0f) ||
+               (value >= maximum && contribution > 0.0f);
+    };
+
+    bool blockM2 =
+        movesFartherOutside(encoderE2,
+            LIMIT_ENCODER_E2_MIN, LIMIT_ENCODER_E2_MAX,
+            encoderVelocityE2) ||
+        movesFartherOutside(jointDifference,
+            LIMIT_J2_J3_DIFF_MIN, LIMIT_J2_J3_DIFF_MAX,
+            differenceVelocityFromM2);
+
+    bool blockM3 =
+        movesFartherOutside(encoderE3,
+            LIMIT_ENCODER_E3_MIN, LIMIT_ENCODER_E3_MAX,
+            encoderVelocityE3) ||
+        movesFartherOutside(jointDifference,
+            LIMIT_J2_J3_DIFF_MIN, LIMIT_J2_J3_DIFF_MAX,
+            differenceVelocityFromM3);
+
+    if(blockM2){
+        m_state_j2 = JointControlState::DISABLED;
     }
-    else if(angleDiff < LIMIT_J2_J3_DIFF_MIN){
-        // warning - robot reached the min limit between J2 and J3
-        if(j2ContributionToJ3 < 0.0f){
-            m_state_j2 = JointControlState::DISABLED;
-        }
-        if(contributionJ3 < 0.0f){
-            m_state_j3 = JointControlState::DISABLED;
-        }
-    }
-    if(angle_J3 < LIMIT_J3_MIN){
-        // warning - robot reached a the limit of J3
-        if(j2ContributionToJ3 < 0.0f){
-            m_state_j2 = JointControlState::DISABLED;
-        }
-        if(contributionJ3 < 0.0f){
-            m_state_j3 = JointControlState::DISABLED;
-        }
-    }
-    if(angle_J2 < LIMIT_J2_MIN){
-        // warning - robot reached the min limit of J2
-        if(contributionJ2 < 0.0f){
-            m_state_j2 = JointControlState::DISABLED;
-        }
-    } else if(angle_J2 > LIMIT_J2_MAX){
-        // warning - robot reached the max limit of J2
-        if(contributionJ2 > 0.0f){
-            m_state_j2 = JointControlState::DISABLED;
-        }
+    if(blockM3){
+        m_state_j3 = JointControlState::DISABLED;
     }
 }
 
@@ -287,8 +287,8 @@ float JointController::getDiffAngleJ2J3(){
     float encoderPositionJ3 = normalizeAngle180(
         m_encoder3->getCorrectedAngleDeg());
     return normalizeAngle180(
-        J2_J3_PARALLEL_COUPLING_RATIO * encoderPositionJ2
-        + encoderPositionJ3);
+        encoderPositionJ2
+        - J2_J3_DIFF_E3_DIRECTION * encoderPositionJ3);
 }
 
 /**
@@ -878,8 +878,9 @@ void JointController::updateJ4NeutralEstimator(float positionError, float veloci
  * @brief Update the closed-loop controller for the J4 continuous servo.
  *
  * The servo accepts a signed speed offset while the AS5600 provides position
- * feedback. Position errors use the shortest path across the 0/360-degree
- * boundary. This method is called by the existing 100 Hz joint-control loop.
+ * feedback. J4 is mechanically limited, so position errors follow the signed
+ * joint interval rather than wrapping across the +/-180-degree boundary. This
+ * method is called by the existing 100 Hz joint-control loop.
  */
 void JointController::stepContinuousServo()
 {
@@ -902,22 +903,28 @@ void JointController::stepContinuousServo()
         resetJ4ControlHistory();
     }
 
-    if(m_state_j4 == JointControlState::VELOCITY_CONTROL){
-        m_motor4->setSpeed(std::clamp(
-            m_setpoint_vel_j4,
-            -MAX_VEL_CONTINUOUS_SERVO,
-            MAX_VEL_CONTINUOUS_SERVO
-        ));
-        return;
-    }
-
     if(m_encoder4 == NULL){
         m_state_j4 = JointControlState::DISABLED;
         m_motor4->stop();
         return;
     }
 
-    float currentPosition = m_encoder4->getCorrectedAngleDeg();
+    float currentPosition = normalizeAngle180(
+        m_encoder4->getCorrectedAngleDeg());
+
+    if(m_state_j4 == JointControlState::VELOCITY_CONTROL){
+        float velocity = std::clamp(
+            m_setpoint_vel_j4,
+            -MAX_VEL_CONTINUOUS_SERVO,
+            MAX_VEL_CONTINUOUS_SERVO
+        );
+        if((currentPosition <= LIMIT_J4_MIN && velocity < 0.0f)
+        || (currentPosition >= LIMIT_J4_MAX && velocity > 0.0f)){
+            velocity = 0.0f;
+        }
+        m_motor4->setSpeed(velocity);
+        return;
+    }
 
     constexpr float dt = 0.01f;
     if(!m_j4_position_sample_valid){
@@ -933,8 +940,6 @@ void JointController::stepContinuousServo()
                             * (rawVelocity - m_j4_filtered_velocity);
 
     float error = m_setpoint_pos_j4 - currentPosition;
-    while(error > 180.0f) error -= 360.0f;
-    while(error < -180.0f) error += 360.0f;
     float absoluteError = std::fabs(error);
 
     // Integrate only while position control is active and prevent wind-up.
@@ -1002,6 +1007,11 @@ void JointController::stepContinuousServo()
         m_j4_previous_drive_sign = absoluteSpeed > 0.0f
                                  ? std::copysign(1.0f, speed)
                                  : 0.0f;
+    }
+
+    if((currentPosition <= LIMIT_J4_MIN && outputSpeed < 0.0f)
+    || (currentPosition >= LIMIT_J4_MAX && outputSpeed > 0.0f)){
+        outputSpeed = 0.0f;
     }
 
     m_motor4->setSpeed(outputSpeed);
@@ -1093,7 +1103,7 @@ void JointController::setJ3Position(float position)
 void JointController::setJ4Position(float position)
 {
     m_state_j4 = JointControlState::POSITION_CONTROL;
-    m_setpoint_pos_j4 = position;
+    m_setpoint_pos_j4 = std::clamp(position, LIMIT_J4_MIN, LIMIT_J4_MAX);
     m_setpoint_vel_j4 = DEFAULT_VEL_CONTINUOUS_SERVO;
     m_j4_latched_hold_mode = false;
     resetJ4ControlHistory();
@@ -1173,7 +1183,10 @@ void JointController::setJ4Velocity(float velocity)
             m_motor4->stop();
         }
         if(m_encoder4 != NULL){
-            m_setpoint_pos_j4 = m_encoder4->getCorrectedAngleDeg();
+            m_setpoint_pos_j4 = std::clamp(
+                normalizeAngle180(m_encoder4->getCorrectedAngleDeg()),
+                LIMIT_J4_MIN,
+                LIMIT_J4_MAX);
             m_setpoint_vel_j4 = DEFAULT_VEL_CONTINUOUS_SERVO;
             m_state_j4 = JointControlState::POSITION_CONTROL;
             m_j4_latched_hold_mode = true;
@@ -1265,7 +1278,7 @@ void JointController::setJ3PositionVelocity(float position, float velocity)
 void JointController::setJ4PositionVelocity(float position, float velocity)
 {
     m_state_j4 = JointControlState::POSITION_CONTROL;
-    m_setpoint_pos_j4 = position;
+    m_setpoint_pos_j4 = std::clamp(position, LIMIT_J4_MIN, LIMIT_J4_MAX);
     m_setpoint_vel_j4 = std::fabs(velocity);
     m_j4_latched_hold_mode = false;
     resetJ4ControlHistory();

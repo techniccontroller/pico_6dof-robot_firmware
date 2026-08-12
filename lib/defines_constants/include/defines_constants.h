@@ -139,16 +139,24 @@
 #define J4_PID_I_DEFAULT 0.0f            // Neutral adaptation provides the bias correction
 #define J4_PID_D_DEFAULT 0.10f
 
-#define LIMIT_J2_MIN -31.0f
-#define LIMIT_J2_MAX 110.0f
-#define LIMIT_J3_MIN -120.0f
-#define LIMIT_J3_MAX 10.0f
-#define LIMIT_J5_MIN -60.0f
-#define LIMIT_J5_MAX 160.0f
-#define LIMIT_J6_MIN -160.0f
-#define LIMIT_J6_MAX 60.0f
-#define LIMIT_J2_J3_DIFF_MIN -5.0f
-#define LIMIT_J2_J3_DIFF_MAX 108.0f
+// J2/J3 parallel-link limits. Encoder space protects the physical mechanism.
+// E3 is mechanically inverted for the difference check, so the checked value
+// is E2 - (-E3), equivalently E2 + E3.
+#define LIMIT_ENCODER_E2_MIN -75.0f
+#define LIMIT_ENCODER_E2_MAX 70.0f
+#define LIMIT_ENCODER_E3_MIN -10.0f
+#define LIMIT_ENCODER_E3_MAX 85.0f
+#define J2_J3_DIFF_E3_DIRECTION -1.0f
+#define LIMIT_J2_J3_DIFF_MIN -50.0f
+#define LIMIT_J2_J3_DIFF_MAX 54.0f
+
+#define LIMIT_J4_MIN -160.0f
+#define LIMIT_J4_MAX 160.0f
+
+#define LIMIT_J5_MIN -100.0f
+#define LIMIT_J5_MAX 100.0f
+#define LIMIT_J6_MIN -120.0f
+#define LIMIT_J6_MAX 120.0f
 
 #define LIMIT_GRIP_OPEN 10.0f
 #define LIMIT_GRIP_CLOSE 170.0f

@@ -270,9 +270,11 @@ std::string Robot::getRobotDataAsJson()
 
     jsonObj["robot_data"]["pose"] = pose;
 
+    float encoderE2 = normalizeAngle180(m_encoderJ2.getCorrectedAngleDeg());
+    float encoderE3 = normalizeAngle180(m_encoderJ3.getCorrectedAngleDeg());
     jsonObj["robot_data"]["encoder_positions"] = {
-        normalizeAngle180(m_encoderJ2.getCorrectedAngleDeg()),
-        normalizeAngle180(m_encoderJ3.getCorrectedAngleDeg()),
+        encoderE2,
+        encoderE3,
         normalizeAngle180(m_encoderJ4.getCorrectedAngleDeg()),
         normalizeAngle180(m_encoderJ5.getCorrectedAngleDeg()),
         normalizeAngle180(m_encoderJ6.getCorrectedAngleDeg())};
@@ -288,6 +290,11 @@ std::string Robot::getRobotDataAsJson()
         {"speed", m_motorM4.getSpeed()}
     };
     jsonObj["robot_data"]["diffAngleJ2J3"] = m_jointController.getDiffAngleJ2J3();
+    jsonObj["robot_data"]["j2_j3_limit_coordinates"] = {
+        {"encoder", {{"e2", encoderE2}, {"e3", encoderE3}}},
+        {"joint", {{"j2", config[1]}, {"j3", config[2]}}},
+        {"difference_e2_minus_inverted_e3", m_jointController.getDiffAngleJ2J3()}
+    };
     jsonObj["robot_data"]["speeds"] = {m_stepperM1.speed(), m_stepperM2.speed(), m_stepperM3.speed()};
     roundJsonFloatsToThreeDecimals(jsonObj);
     return jsonObj.dump();
