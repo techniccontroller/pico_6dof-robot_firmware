@@ -33,7 +33,15 @@
 #define MS1_PIN 18
 #define MS2_PIN 17
 #define MS3_PIN 16
-#define ENABLE_PIN 28
+
+// J1 analog Hall-effect endstop input (ADC2). Endstop behavior is not yet active.
+#define J1_HALL_SENSOR_PIN 28
+#define J1_HALL_SENSOR_ADC_INPUT 2
+#define J1_HALL_SENSOR_ACTIVE_THRESHOLD 1700
+#define J1_HALL_SENSOR_DEBOUNCE_SAMPLES 3
+#define J1_HOMING_SPEED_DEG_S 10.0f
+#define J1_HOMING_DIRECTION -1.0f
+#define J1_HOMING_TIMEOUT_MS 30000
 
 // Motor 1 is the motor for Joint 1 (stepper motor)
 #define MOTOR1_STEP_PIN 20

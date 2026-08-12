@@ -53,7 +53,10 @@ public:
     void moveToConfiguration(std::vector<float> config, float velocity);
 
     void stepStepper(AccelStepper * stepper, AS5600 * encoder, JointControlState * state, float * setpoint_pos, float * setpoint_vel);
+    void stepJ1();
     void stepContinuousServo();
+    void setJ1HallSensorRaw(uint16_t rawValue);
+    bool isJ1Homed() const;
     std::vector<float> getConfiguration();
     void checkJointLimitsJ2J3();
     float getDiffAngleJ2J3();
@@ -152,6 +155,10 @@ private:
     float m_j4_drive_accumulator = 0.0f;
     float m_j4_previous_drive_sign = 0.0f;
     bool m_j4_servo_frame_phase = false;
+    uint16_t m_j1_hall_sensor_raw = 4095;
+    uint16_t m_j1_homing_cycles = 0;
+    uint8_t m_j1_hall_active_samples = 0;
+    bool m_j1_homed = false;
     float pid_p_j5 = 6;
     float pid_i_j5 = 0;
     float pid_d_j5 = 0.0f;

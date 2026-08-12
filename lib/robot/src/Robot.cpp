@@ -1,6 +1,7 @@
 #include "Robot.h"
 #include "defines_constants.h"
 #include "EEPROM.h"
+#include "hardware/adc.h"
 #include <math.h>
 #include <string>
 #include <cstdio>
@@ -35,7 +36,7 @@ Robot::Robot(void):
     m_stepperM1(AccelStepper::DRIVER, MOTOR1_STEP_PIN, MOTOR1_DIR_PIN),
     m_stepperM2(AccelStepper::DRIVER, MOTOR2_STEP_PIN, MOTOR2_DIR_PIN),
     m_stepperM3(AccelStepper::DRIVER, MOTOR3_STEP_PIN, MOTOR3_DIR_PIN),
-    m_stepperConfiguration(MS1_PIN, MS2_PIN, MS3_PIN, ENABLE_PIN, MICROSTEP_RESOLUTION, 60.0/16.0 * 60.0/16.0),
+    m_stepperConfiguration(MS1_PIN, MS2_PIN, MS3_PIN, MICROSTEP_RESOLUTION, 60.0/16.0 * 60.0/16.0),
     m_motorM4(SERVO_CONTINUE_J4_PIN, CONTINUOUS_SERVO_J4_NEUTRAL_COMMAND,
               CONTINUOUS_SERVO_J4_MIN_COMMAND, CONTINUOUS_SERVO_J4_MAX_COMMAND,
               CONTINUOUS_SERVO_J4_DIRECTION),
@@ -45,6 +46,11 @@ Robot::Robot(void):
     m_motorController(&m_stepperConfiguration),
     m_gripper(SERVO_GRIPPER_PIN)
 {
+    adc_init();
+    adc_gpio_init(J1_HALL_SENSOR_PIN);
+    adc_select_input(J1_HALL_SENSOR_ADC_INPUT);
+    m_j1HallSensorRaw = adc_read();
+
     m_stepperM1.setMaxSpeed(2000);
     m_stepperM1.setAcceleration(500);
     m_stepperM2.setMaxSpeed(2000);
@@ -92,6 +98,10 @@ Robot::RobotMode Robot::getMode()
 
 void Robot::step()
 {
+    adc_select_input(J1_HALL_SENSOR_ADC_INPUT);
+    m_j1HallSensorRaw = adc_read();
+    m_jointController.setJ1HallSensorRaw(m_j1HallSensorRaw);
+
     switch (mode)
     {
     case RobotMode::AUTO:
@@ -243,6 +253,9 @@ std::string Robot::getRobotDataAsJson()
     std::vector<float> pose = getPose();
 
     jsonObj["robot_data"]["config"] = config;
+
+    jsonObj["robot_data"]["j1_hall_sensor_raw"] = m_j1HallSensorRaw;
+    jsonObj["robot_data"]["j1_homed"] = m_jointController.isJ1Homed();
 
     jsonObj["robot_data"]["pose"] = pose;
 

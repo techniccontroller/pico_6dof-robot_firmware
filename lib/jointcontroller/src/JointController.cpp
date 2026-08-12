@@ -341,6 +341,92 @@ float JointController::stepDCJoint(
     return std::clamp(command, -commandLimit, commandLimit);
 }
 
+void JointController::setJ1HallSensorRaw(uint16_t rawValue)
+{
+    m_j1_hall_sensor_raw = rawValue;
+}
+
+bool JointController::isJ1Homed() const
+{
+    return m_j1_homed;
+}
+
+/**
+ * @brief Home J1 against its analog Hall endstop, then use step counting.
+ *
+ * The Hall sensor is active below the configured ADC threshold. After three
+ * consecutive active samples, the current stepper position becomes J1 zero.
+ */
+void JointController::stepJ1()
+{
+    bool hallActive = m_j1_hall_sensor_raw
+                   < J1_HALL_SENSOR_ACTIVE_THRESHOLD;
+
+    if(m_state_j1 == JointControlState::INITIALIZATION){
+        if(hallActive){
+            if(m_j1_hall_active_samples < J1_HALL_SENSOR_DEBOUNCE_SAMPLES){
+                ++m_j1_hall_active_samples;
+            }
+        }
+        else{
+            m_j1_hall_active_samples = 0;
+        }
+
+        if(m_j1_hall_active_samples >= J1_HALL_SENSOR_DEBOUNCE_SAMPLES){
+            m_stepper1->setSpeed(0.0f);
+            m_stepper1->setCurrentPosition(0);
+            m_stepper1->moveTo(0);
+            m_setpoint_pos_j1 = 0.0f;
+            m_setpoint_vel_j1 = DEFAULT_VEL_STEPPER;
+            m_state_j1 = JointControlState::POSITION_CONTROL;
+            m_j1_homed = true;
+            m_j1_homing_cycles = 0;
+            return;
+        }
+
+        constexpr uint16_t maximumHomingCycles =
+            (J1_HOMING_TIMEOUT_MS + 9) / 10;
+        if(++m_j1_homing_cycles >= maximumHomingCycles){
+            m_stepper1->setSpeed(0.0f);
+            m_stepper1->moveTo(m_stepper1->currentPosition());
+            m_state_j1 = JointControlState::DISABLED;
+            m_j1_homing_cycles = 0;
+            return;
+        }
+
+        float homingSpeed = J1_HOMING_DIRECTION * J1_HOMING_SPEED_DEG_S;
+        long homingSpeedSteps =
+            m_stepperConfiguration->angleDegToSteps(homingSpeed);
+        m_stepper1->setMaxSpeed(std::abs(homingSpeedSteps));
+        m_stepper1->setSpeed(homingSpeedSteps);
+        return;
+    }
+
+    // The endstop defines position zero. Never command further travel through
+    // it after homing, but always allow movement in the opposite direction.
+    if(m_j1_homed && hallActive){
+        bool commandingTowardEndstop =
+            (m_state_j1 == JointControlState::POSITION_CONTROL &&
+             m_setpoint_pos_j1 * J1_HOMING_DIRECTION > 0.0f) ||
+            (m_state_j1 == JointControlState::VELOCITY_CONTROL &&
+             m_setpoint_vel_j1 * J1_HOMING_DIRECTION > 0.0f);
+        if(commandingTowardEndstop){
+            m_stepper1->setCurrentPosition(0);
+        }
+        if(commandingTowardEndstop &&
+           m_state_j1 == JointControlState::POSITION_CONTROL){
+            m_setpoint_pos_j1 = 0.0f;
+        }
+        if(commandingTowardEndstop &&
+           m_state_j1 == JointControlState::VELOCITY_CONTROL){
+            m_setpoint_vel_j1 = 0.0f;
+        }
+    }
+
+    stepStepper(m_stepper1, NULL, &m_state_j1,
+                &m_setpoint_pos_j1, &m_setpoint_vel_j1);
+}
+
 float JointController::compensateDCMotorDeadZone(
     float command, float positiveMinimum, float negativeMinimum)
 {
@@ -434,7 +520,7 @@ void JointController::step()
         m_state_j6 = JointControlState::DISABLED;
     }
     if(encodersValid) checkJointLimitsJ2J3();
-    stepStepper(m_stepper1, m_encoder1, &m_state_j1, &m_setpoint_pos_j1, &m_setpoint_vel_j1);
+    stepJ1();
     stepStepper(m_stepper2, m_encoder2, &m_state_j2, &m_setpoint_pos_j2, &m_setpoint_vel_j2);
     stepStepper(m_stepper3, m_encoder3, &m_state_j3, &m_setpoint_pos_j3, &m_setpoint_vel_j3);
     stepContinuousServo();
@@ -594,6 +680,10 @@ void JointController::reset()
 void JointController::initializeJ1()
 {
     m_state_j1 = JointControlState::INITIALIZATION;
+    m_j1_homed = false;
+    m_j1_homing_cycles = 0;
+    m_j1_hall_active_samples = 0;
+    m_stepper1->setSpeed(0.0f);
 }
 
 void JointController::initializeJ2()
@@ -633,6 +723,8 @@ void JointController::zeroJ1()
         m_encoder1->setZero();
     }
     m_stepper1->setCurrentPosition(0);
+    m_setpoint_pos_j1 = 0.0f;
+    m_j1_homed = true;
 }
 
 void JointController::zeroJ2()

@@ -98,6 +98,7 @@ private:
     StepperConfiguration m_stepperConfiguration; /**< Stepper configuration. */
 
     Gripper m_gripper; /**< Gripper. */
+    uint16_t m_j1HallSensorRaw = 4095;
 
     void loadSensorCalibrationData(AS5600 *encoder, int addr);
     void writeSensorCalibrationData(AS5600 *encoder, int addr);

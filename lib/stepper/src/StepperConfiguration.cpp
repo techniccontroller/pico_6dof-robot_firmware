@@ -2,12 +2,14 @@
 #include "hardware/gpio.h"
 #include <math.h>
 
-StepperConfiguration::StepperConfiguration(uint8_t pinMS1, uint8_t pinMS2, uint8_t pinMS3, uint8_t pinEnable, uint8_t microsteppingResolution, float gearRatio)
+StepperConfiguration::StepperConfiguration(uint8_t pinMS1, uint8_t pinMS2,
+                                           uint8_t pinMS3,
+                                           uint8_t microsteppingResolution,
+                                           float gearRatio)
 {
     _pinMS1 = pinMS1;
     _pinMS2 = pinMS2;
     _pinMS3 = pinMS3;
-    _pinEnable = pinEnable;
     _microsteppingResolution = microsteppingResolution;
     _gearRatio = gearRatio;
     setupMicrosteppingPins();
