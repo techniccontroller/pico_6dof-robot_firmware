@@ -42,6 +42,7 @@
 #define J1_HOMING_SPEED_DEG_S 10.0f
 #define J1_HOMING_DIRECTION -1.0f
 #define J1_HOMING_TIMEOUT_MS 30000
+#define J1_ENDSTOP_POSITION_DEG -91.0f
 
 // Motor 1 is the motor for Joint 1 (stepper motor)
 #define MOTOR1_STEP_PIN 20
@@ -98,6 +99,9 @@
 
 #define INIT_VEL_STEPPER 3.2f       // 100 steps/s = 3.2 deg/s
 #define INIT_VEL_DCMOTOR 50.0f      // PWM
+#define STEPPER_ENCODER_POSITION_TOLERANCE_DEG 0.10f
+#define J2_ENCODER_DRIVE_DIRECTION -1.0f
+#define J3_ENCODER_DRIVE_DIRECTION -1.0f
 #define DCMOTOR_POSITION_TOLERANCE_DEG 0.50f
 #define DCMOTOR_POSITION_REENGAGE_DEG 1.50f
 #define DCMOTOR_MAX_PWM 255.0f

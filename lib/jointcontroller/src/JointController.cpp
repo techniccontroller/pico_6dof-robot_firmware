@@ -89,7 +89,9 @@ void JointController::initialize()
  * @param setpoint_pos  The current position setpoint of the joint to control [deg]
  * @param setpoint_vel  The current velocity setpoint of the joint to control [deg/s]
  */
-void JointController::stepStepper(AccelStepper * stepper, AS5600 * encoder, JointControlState * state, float * setpoint_pos, float * setpoint_vel)
+void JointController::stepStepper(
+    AccelStepper *stepper, AS5600 *encoder, JointControlState *state,
+    float *setpoint_pos, float *setpoint_vel, float encoderDriveDirection)
 {
     long speed_steps = 0;
     long setpoint_steps = 0;
@@ -116,10 +118,15 @@ void JointController::stepStepper(AccelStepper * stepper, AS5600 * encoder, Join
         if(abs(angle) < 0.1) {
             *state = JointControlState::POSITION_CONTROL;
             stepper->setCurrentPosition(0);
+            stepper->moveTo(0);
             *setpoint_pos = 0;
             *setpoint_vel = INIT_VEL_STEPPER;
+            return;
         }
-        speed = std::clamp(5 * angle, -INIT_VEL_STEPPER, INIT_VEL_STEPPER);
+        speed = std::clamp(
+            encoderDriveDirection * -5.0f * angle,
+            -INIT_VEL_STEPPER,
+            INIT_VEL_STEPPER);
         speed_steps = m_stepperConfiguration->angleDegToSteps(speed);
         stepper->setMaxSpeed(speed_steps);
         stepper->setSpeed(speed_steps);
@@ -128,8 +135,29 @@ void JointController::stepStepper(AccelStepper * stepper, AS5600 * encoder, Join
         speed_steps = m_stepperConfiguration->angleDegToSteps(*setpoint_vel);
         stepper->setMaxSpeed(speed_steps);
         stepper->setAcceleration(DEFAULT_ACC_STEPPER);
-        setpoint_steps = m_stepperConfiguration->angleDegToSteps(*setpoint_pos);
-        stepper->moveTo(setpoint_steps);
+        if(encoder != NULL){
+            angle = encoder->getCorrectedAngleDeg();
+            if(angle > 180.0f){
+                angle -= 360.0f;
+            }
+            float error = *setpoint_pos - angle;
+            while(error > 180.0f) error -= 360.0f;
+            while(error < -180.0f) error += 360.0f;
+
+            currentPos = stepper->currentPosition();
+            if(std::fabs(error) <= STEPPER_ENCODER_POSITION_TOLERANCE_DEG){
+                stepper->moveTo(currentPos);
+            }
+            else{
+                long correctionSteps = m_stepperConfiguration->angleDegToSteps(
+                    encoderDriveDirection * error);
+                stepper->moveTo(currentPos + correctionSteps);
+            }
+        }
+        else{
+            setpoint_steps = m_stepperConfiguration->angleDegToSteps(*setpoint_pos);
+            stepper->moveTo(setpoint_steps);
+        }
         break;
     case VELOCITY_CONTROL:
         speed_steps = m_stepperConfiguration->angleDegToSteps(*setpoint_vel);
@@ -148,20 +176,28 @@ std::vector<float> JointController::getConfiguration()
 {
     std::vector<float> config;
     config.push_back(m_stepperConfiguration->stepsToAngleDeg(m_stepper1->currentPosition()));
-    config.push_back(m_stepperConfiguration->stepsToAngleDeg(m_stepper2->currentPosition()));
-    config.push_back(m_stepperConfiguration->stepsToAngleDeg(m_stepper3->currentPosition()));
-    if(m_encoder4 != NULL)
-        config.push_back(m_encoder4->getCorrectedAngleDeg());
-    else
-        config.push_back(0);
-    if(m_encoder5 != NULL)
-        config.push_back(m_encoder5->getCorrectedAngleDeg());
-    else
-        config.push_back(0);
-    if(m_encoder6 != NULL)
-        config.push_back(m_encoder6->getCorrectedAngleDeg());
-    else
-        config.push_back(0);
+    float positionJ2 = m_encoder2 != NULL
+                     ? m_encoder2->getCorrectedAngleDeg()
+                     : m_stepperConfiguration->stepsToAngleDeg(m_stepper2->currentPosition());
+    float positionJ3 = m_encoder3 != NULL
+                     ? m_encoder3->getCorrectedAngleDeg()
+                     : m_stepperConfiguration->stepsToAngleDeg(m_stepper3->currentPosition());
+    if(positionJ2 > 180.0f) positionJ2 -= 360.0f;
+    if(positionJ3 > 180.0f) positionJ3 -= 360.0f;
+    config.push_back(positionJ2);
+    config.push_back(positionJ3);
+    float positionJ4 = m_encoder4 != NULL
+                     ? m_encoder4->getCorrectedAngleDeg() : 0.0f;
+    float positionJ5 = m_encoder5 != NULL
+                     ? m_encoder5->getCorrectedAngleDeg() : 0.0f;
+    float positionJ6 = m_encoder6 != NULL
+                     ? m_encoder6->getCorrectedAngleDeg() : 0.0f;
+    if(positionJ4 > 180.0f) positionJ4 -= 360.0f;
+    if(positionJ5 > 180.0f) positionJ5 -= 360.0f;
+    if(positionJ6 > 180.0f) positionJ6 -= 360.0f;
+    config.push_back(positionJ4);
+    config.push_back(positionJ5);
+    config.push_back(positionJ6);
     return config;
 }
 
@@ -355,7 +391,8 @@ bool JointController::isJ1Homed() const
  * @brief Home J1 against its analog Hall endstop, then use step counting.
  *
  * The Hall sensor is active below the configured ADC threshold. After three
- * consecutive active samples, the current stepper position becomes J1 zero.
+ * consecutive active samples, the current position becomes the configured
+ * mechanical endstop angle.
  */
 void JointController::stepJ1()
 {
@@ -374,9 +411,11 @@ void JointController::stepJ1()
 
         if(m_j1_hall_active_samples >= J1_HALL_SENSOR_DEBOUNCE_SAMPLES){
             m_stepper1->setSpeed(0.0f);
-            m_stepper1->setCurrentPosition(0);
-            m_stepper1->moveTo(0);
-            m_setpoint_pos_j1 = 0.0f;
+            long endstopSteps = m_stepperConfiguration->angleDegToSteps(
+                J1_ENDSTOP_POSITION_DEG);
+            m_stepper1->setCurrentPosition(endstopSteps);
+            m_stepper1->moveTo(endstopSteps);
+            m_setpoint_pos_j1 = J1_ENDSTOP_POSITION_DEG;
             m_setpoint_vel_j1 = DEFAULT_VEL_STEPPER;
             m_state_j1 = JointControlState::POSITION_CONTROL;
             m_j1_homed = true;
@@ -402,20 +441,23 @@ void JointController::stepJ1()
         return;
     }
 
-    // The endstop defines position zero. Never command further travel through
-    // it after homing, but always allow movement in the opposite direction.
+    // Never command travel beyond the mechanical endstop after homing, but
+    // always allow movement away from it.
     if(m_j1_homed && hallActive){
         bool commandingTowardEndstop =
             (m_state_j1 == JointControlState::POSITION_CONTROL &&
-             m_setpoint_pos_j1 * J1_HOMING_DIRECTION > 0.0f) ||
+             (m_setpoint_pos_j1 - J1_ENDSTOP_POSITION_DEG) *
+                 J1_HOMING_DIRECTION > 0.0f) ||
             (m_state_j1 == JointControlState::VELOCITY_CONTROL &&
              m_setpoint_vel_j1 * J1_HOMING_DIRECTION > 0.0f);
         if(commandingTowardEndstop){
-            m_stepper1->setCurrentPosition(0);
+            m_stepper1->setCurrentPosition(
+                m_stepperConfiguration->angleDegToSteps(
+                    J1_ENDSTOP_POSITION_DEG));
         }
         if(commandingTowardEndstop &&
            m_state_j1 == JointControlState::POSITION_CONTROL){
-            m_setpoint_pos_j1 = 0.0f;
+            m_setpoint_pos_j1 = J1_ENDSTOP_POSITION_DEG;
         }
         if(commandingTowardEndstop &&
            m_state_j1 == JointControlState::VELOCITY_CONTROL){
@@ -521,8 +563,12 @@ void JointController::step()
     }
     if(encodersValid) checkJointLimitsJ2J3();
     stepJ1();
-    stepStepper(m_stepper2, m_encoder2, &m_state_j2, &m_setpoint_pos_j2, &m_setpoint_vel_j2);
-    stepStepper(m_stepper3, m_encoder3, &m_state_j3, &m_setpoint_pos_j3, &m_setpoint_vel_j3);
+    stepStepper(m_stepper2, m_encoder2, &m_state_j2,
+                &m_setpoint_pos_j2, &m_setpoint_vel_j2,
+                J2_ENCODER_DRIVE_DIRECTION);
+    stepStepper(m_stepper3, m_encoder3, &m_state_j3,
+                &m_setpoint_pos_j3, &m_setpoint_vel_j3,
+                J3_ENCODER_DRIVE_DIRECTION);
     stepContinuousServo();
 
     float jointCommandJ5 = stepDCJoint(

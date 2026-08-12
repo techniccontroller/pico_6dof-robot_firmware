@@ -8,6 +8,13 @@
 
 namespace
 {
+float normalizeAngle180(float angle)
+{
+    while(angle > 180.0f) angle -= 360.0f;
+    while(angle < -180.0f) angle += 360.0f;
+    return angle;
+}
+
 void roundJsonFloatsToThreeDecimals(nlohmann::json& value)
 {
     if (value.is_number_float())
@@ -58,6 +65,7 @@ Robot::Robot(void):
     m_stepperM3.setMaxSpeed(2000);
     m_stepperM3.setAcceleration(500);
 
+    initEEPROM();
     loadAllSensorCalibrationData();
 
     m_motorController.addM1(&m_stepperM1, NULL);
@@ -81,7 +89,6 @@ Robot::Robot(void):
     m_jointController.addE5(&m_encoderJ5);
     m_jointController.addE6(&m_encoderJ6);
 
-    initEEPROM();
 }
 
 void Robot::setMode(RobotMode mode)
@@ -143,15 +150,18 @@ void Robot::loadAllSensorCalibrationData()
     loadSensorCalibrationData(&m_encoderJ4, EEPROM_ADDR_ENCJ4);
     loadSensorCalibrationData(&m_encoderJ5, EEPROM_ADDR_ENCJ5);
     loadSensorCalibrationData(&m_encoderJ6, EEPROM_ADDR_ENCJ6);
+    // Persist any first-boot defaults created for uncalibrated encoders.
+    saveEEPROMDataPersistent();
 }
 
 void Robot::loadSensorCalibrationData(AS5600 *encoder, int addr)
 {
     int zero = 0;
     zero = EEPROM.get(addr, zero);
-    if(zero >= AS5601_ANGLE_MAX)
+    if(zero < 0 || zero >= AS5601_ANGLE_MAX)
     {
         encoder->setZero();
+        EEPROM.put(addr, encoder->getZero());
         printf("Set current pos as zero: %d\n", encoder->getZero());
     }
     else
@@ -168,6 +178,7 @@ void Robot::writeAllSensorCalibrationData()
     writeSensorCalibrationData(&m_encoderJ4, EEPROM_ADDR_ENCJ4);
     writeSensorCalibrationData(&m_encoderJ5, EEPROM_ADDR_ENCJ5);
     writeSensorCalibrationData(&m_encoderJ6, EEPROM_ADDR_ENCJ6);
+    saveEEPROMDataPersistent();
 }
 
 void Robot::writeSensorCalibrationData(AS5600 *encoder, int addr)
@@ -259,12 +270,18 @@ std::string Robot::getRobotDataAsJson()
 
     jsonObj["robot_data"]["pose"] = pose;
 
-    jsonObj["robot_data"]["encoder_positions"] = {m_encoderJ2.getCorrectedAngleDeg(), m_encoderJ3.getCorrectedAngleDeg(),
-                                     m_encoderJ4.getCorrectedAngleDeg(), m_encoderJ5.getCorrectedAngleDeg(), m_encoderJ6.getCorrectedAngleDeg()};
+    jsonObj["robot_data"]["encoder_positions"] = {
+        normalizeAngle180(m_encoderJ2.getCorrectedAngleDeg()),
+        normalizeAngle180(m_encoderJ3.getCorrectedAngleDeg()),
+        normalizeAngle180(m_encoderJ4.getCorrectedAngleDeg()),
+        normalizeAngle180(m_encoderJ5.getCorrectedAngleDeg()),
+        normalizeAngle180(m_encoderJ6.getCorrectedAngleDeg())};
     jsonObj["robot_data"]["encoder_positions_raw"] = {m_encoderJ2.readAngleDeg(), m_encoderJ3.readAngleDeg(),
                                          m_encoderJ4.readAngleDeg(), m_encoderJ5.readAngleDeg(), m_encoderJ6.readAngleDeg()};
     jsonObj["robot_data"]["encoder_status"] = {m_encoderJ2.getStatus(), m_encoderJ3.getStatus(),
                                   m_encoderJ4.getStatus(), m_encoderJ5.getStatus(), m_encoderJ6.getStatus()};
+    jsonObj["robot_data"]["encoder_zeros"] = {m_encoderJ2.getZero(), m_encoderJ3.getZero(),
+                                  m_encoderJ4.getZero(), m_encoderJ5.getZero(), m_encoderJ6.getZero()};
     jsonObj["robot_data"]["j4_continuous_servo"] = {
         {"neutral_command", m_motorM4.getNeutralCommand()},
         {"output_command", m_motorM4.getCommand()},
@@ -417,25 +434,45 @@ void Robot::initJoint(int joint){
 }
 
 void Robot::zeroJoint(int joint){
+    AS5600 *encoderToSave = NULL;
+    int eepromAddress = -1;
+
     switch(joint){
         case Joint::J1:
         m_jointController.zeroJ1();
         break;
         case Joint::J2:
         m_jointController.zeroJ2();
+        encoderToSave = &m_encoderJ2;
+        eepromAddress = EEPROM_ADDR_ENCJ2;
         break;
         case Joint::J3:
         m_jointController.zeroJ3();
+        encoderToSave = &m_encoderJ3;
+        eepromAddress = EEPROM_ADDR_ENCJ3;
         break;
         case Joint::J4:
         m_jointController.zeroJ4();
+        encoderToSave = &m_encoderJ4;
+        eepromAddress = EEPROM_ADDR_ENCJ4;
         break;
         case Joint::J5:
         m_jointController.zeroJ5();
+        encoderToSave = &m_encoderJ5;
+        eepromAddress = EEPROM_ADDR_ENCJ5;
         break;
         case Joint::J6:
         m_jointController.zeroJ6();
+        encoderToSave = &m_encoderJ6;
+        eepromAddress = EEPROM_ADDR_ENCJ6;
         break;
+    }
+
+    // J2-J6 are absolute encoders: zeroing one joint immediately updates flash.
+    // J1 is intentionally excluded because it is re-homed from its Hall sensor.
+    if(encoderToSave != NULL){
+        writeSensorCalibrationData(encoderToSave, eepromAddress);
+        saveEEPROMDataPersistent();
     }
 }
 

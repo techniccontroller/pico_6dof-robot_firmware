@@ -52,7 +52,10 @@ public:
 
     void moveToConfiguration(std::vector<float> config, float velocity);
 
-    void stepStepper(AccelStepper * stepper, AS5600 * encoder, JointControlState * state, float * setpoint_pos, float * setpoint_vel);
+    void stepStepper(AccelStepper *stepper, AS5600 *encoder,
+                     JointControlState *state, float *setpoint_pos,
+                     float *setpoint_vel,
+                     float encoderDriveDirection = 1.0f);
     void stepJ1();
     void stepContinuousServo();
     void setJ1HallSensorRaw(uint16_t rawValue);

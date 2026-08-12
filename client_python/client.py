@@ -257,7 +257,7 @@ def update_lbls():
         encoder_positions = robot_data["encoder_positions"]
         for i in range(min(len(encoder_positions), len(encoder_bars))):
             angle = float(encoder_positions[i])
-            bar_value = max(0.0, min(360.0, angle))
+            bar_value = max(0.0, min(360.0, angle + 180.0))
             encoder_bars[i].update(current_count=bar_value)
             encoder_value_labels[i].update(f"{angle:6.1f} deg")
     
@@ -307,8 +307,7 @@ if __name__ == "__main__":
     btn_move_to_store = sg.Button("MOVE TO STORE", size=15, tooltip="Move all joints to stored position")
     btn_start_square = sg.Button("START SQUARE", size=15, tooltip="Start predefined square movement in task space")
     btn_start_demo = sg.Button("START DEMO", size=15, tooltip="Start predefined demo movement in task space")
-    btn_init_j2 = sg.Button("INIT J2", size=15, tooltip="Initialize joint 2 e.g. after power on")
-    btn_init_j3 = sg.Button("INIT J3", size=15, tooltip="Initialize joint 3 e.g. after power on")
+    btn_init_j1 = sg.Button("INIT J1", size=15, tooltip="Home J1 using the Hall sensor endstop")
 
     btn_gripper_open = sg.Button("OPEN", size=15)
     btn_gripper_close = sg.Button("CLOSE", size=15)
@@ -318,7 +317,7 @@ if __name__ == "__main__":
     container_status_layout = sg.Column([       [sg.HorizontalSeparator()],
                                                 [sg.Text("Status:", size=(60, 2), justification='center')], 
                                                 [lbl_current_pose],
-                                                [sg.Text("Corrected magnetic encoder positions (0-360 deg):")],
+                                                [sg.Text("Corrected magnetic encoder positions (-180 to 180 deg):")],
                                                 [sg.Column(encoder_layout, element_justification='left')]], element_justification='center')
 
     container_btn_layout_joints = sg.Column([   [sg.HorizontalSeparator()],
@@ -347,7 +346,7 @@ if __name__ == "__main__":
     container_default_configs_layout = sg.Column([ [sg.HorizontalSeparator()],
                                                     [sg.Text("Default configurations:", size=(60, 2), justification='center')], 
                                                     [btn_move_to_zero, btn_move_to_store, btn_start_square],
-                                                    [btn_init_j2, btn_init_j3, btn_start_demo]], element_justification='center')
+                                                    [btn_init_j1, btn_start_demo]], element_justification='center')
 
     layout = [  [container_status_layout],
                 [container_raw_command_layout], 
@@ -410,11 +409,8 @@ if __name__ == "__main__":
         elif event == "MOVE TO STORE":
             ser.write("CONFIG(0,-51,-4,0,-90,0)\n".encode())
         
-        elif event == "INIT J2":
-            send_init_cmd("J2")
-        
-        elif event == "INIT J3":
-            send_init_cmd("J3")
+        elif event == "INIT J1":
+            send_init_cmd("J1")
         
         elif event == "SEND":
             #ser.write(("COORD(" + txt_coord.get() + ")\n").encode())
