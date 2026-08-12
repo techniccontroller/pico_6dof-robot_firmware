@@ -123,6 +123,7 @@ public:
                        float j6ToM5, float j6ToM6);
 
 private:
+    void engageJ3HoldForJ2Motion();
     void updateJ4NeutralEstimator(float positionError, float velocity);
     void resetJ4ControlHistory();
 

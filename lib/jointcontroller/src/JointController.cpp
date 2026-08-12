@@ -5,6 +5,16 @@
 #include <algorithm>
 #include <cmath>
 
+namespace
+{
+float normalizeAngle180(float angle)
+{
+    while(angle > 180.0f) angle -= 360.0f;
+    while(angle < -180.0f) angle += 360.0f;
+    return angle;
+}
+}
+
 JointController::JointController(StepperConfiguration *stepperConfiguration)
 {
     m_stepperConfiguration = stepperConfiguration;
@@ -160,7 +170,11 @@ void JointController::stepStepper(
         }
         break;
     case VELOCITY_CONTROL:
-        speed_steps = m_stepperConfiguration->angleDegToSteps(*setpoint_vel);
+        speed = *setpoint_vel;
+        if(encoder != NULL){
+            speed *= encoderDriveDirection;
+        }
+        speed_steps = m_stepperConfiguration->angleDegToSteps(speed);
         stepper->setMaxSpeed(speed_steps);
         stepper->setSpeed(speed_steps);
         break;
@@ -176,16 +190,22 @@ std::vector<float> JointController::getConfiguration()
 {
     std::vector<float> config;
     config.push_back(m_stepperConfiguration->stepsToAngleDeg(m_stepper1->currentPosition()));
-    float positionJ2 = m_encoder2 != NULL
+    float encoderPositionJ2 = m_encoder2 != NULL
                      ? m_encoder2->getCorrectedAngleDeg()
                      : m_stepperConfiguration->stepsToAngleDeg(m_stepper2->currentPosition());
-    float positionJ3 = m_encoder3 != NULL
+    float encoderPositionJ3 = m_encoder3 != NULL
                      ? m_encoder3->getCorrectedAngleDeg()
                      : m_stepperConfiguration->stepsToAngleDeg(m_stepper3->currentPosition());
-    if(positionJ2 > 180.0f) positionJ2 -= 360.0f;
-    if(positionJ3 > 180.0f) positionJ3 -= 360.0f;
-    config.push_back(positionJ2);
-    config.push_back(positionJ3);
+    encoderPositionJ2 = normalizeAngle180(encoderPositionJ2);
+    encoderPositionJ3 = normalizeAngle180(encoderPositionJ3);
+
+    // The parallel linkage makes E3 a motor/link coordinate rather than the
+    // logical angle between link 2 and link 3. Expose standard serial-joint
+    // coordinates to planners: J2 = E2, J3 = E2 + E3.
+    config.push_back(encoderPositionJ2);
+    config.push_back(normalizeAngle180(
+        J2_J3_PARALLEL_COUPLING_RATIO * encoderPositionJ2
+        + encoderPositionJ3));
     float positionJ4 = m_encoder4 != NULL
                      ? m_encoder4->getCorrectedAngleDeg() : 0.0f;
     float positionJ5 = m_encoder5 != NULL
@@ -208,61 +228,67 @@ std::vector<float> JointController::getConfiguration()
  * 
  */
 void JointController::checkJointLimitsJ2J3(){
-    float angle_J2 = m_encoder2->readAngleDeg();
-    float angle_J3 = m_encoder3->readAngleDeg();
-    float angleDiff = getDiffAngleJ2J3();
+    float angle_J2 = normalizeAngle180(m_encoder2->getCorrectedAngleDeg());
+    float angle_J3 = getDiffAngleJ2J3();
+    float angleDiff = angle_J3;
+    float contributionJ2 = J2_ENCODER_DRIVE_DIRECTION *
+        m_stepperConfiguration->stepsToAngleDeg(m_stepper2->speed());
+    float contributionJ3 = J3_ENCODER_DRIVE_DIRECTION *
+        m_stepperConfiguration->stepsToAngleDeg(m_stepper3->speed());
+    float j2ContributionToJ3 =
+        J2_J3_PARALLEL_COUPLING_RATIO * contributionJ2;
     if(angleDiff > LIMIT_J2_J3_DIFF_MAX){
         // warning - robot reached the max limit between J2 and J3
 
-        if(m_stepper2->speed() > 0){
+        if(j2ContributionToJ3 > 0.0f){
             m_state_j2 = JointControlState::DISABLED;
         }
-        if(m_stepper3->speed() > 0){
+        if(contributionJ3 > 0.0f){
             m_state_j3 = JointControlState::DISABLED;
         }
     }
     else if(angleDiff < LIMIT_J2_J3_DIFF_MIN){
         // warning - robot reached the min limit between J2 and J3
-        if(m_stepper2->speed() < 0){
+        if(j2ContributionToJ3 < 0.0f){
             m_state_j2 = JointControlState::DISABLED;
         }
-        if(m_stepper3->speed() < 0){
+        if(contributionJ3 < 0.0f){
             m_state_j3 = JointControlState::DISABLED;
         }
     }
     if(angle_J3 < LIMIT_J3_MIN){
         // warning - robot reached a the limit of J3
-        if(m_stepper3->speed() > 0){
+        if(j2ContributionToJ3 < 0.0f){
+            m_state_j2 = JointControlState::DISABLED;
+        }
+        if(contributionJ3 < 0.0f){
             m_state_j3 = JointControlState::DISABLED;
         }
     }
     if(angle_J2 < LIMIT_J2_MIN){
         // warning - robot reached the min limit of J2
-        if(m_stepper2->speed() > 0){
+        if(contributionJ2 < 0.0f){
             m_state_j2 = JointControlState::DISABLED;
         }
     } else if(angle_J2 > LIMIT_J2_MAX){
         // warning - robot reached the max limit of J2
-        if(m_stepper2->speed() < 0){
+        if(contributionJ2 > 0.0f){
             m_state_j2 = JointControlState::DISABLED;
         }
     }
 }
 
 float JointController::getDiffAngleJ2J3(){
-    float angle_J2 = m_encoder2->readAngleDeg();
-    float angle_J3 = m_encoder3->readAngleDeg();
-    float inv_angle_J2 = (360 - angle_J2);
-    if(angle_J2 > 180){
-        angle_J2 = angle_J2 - 360;
+    if(m_encoder2 == NULL || m_encoder3 == NULL){
+        return 0.0f;
     }
-    if(angle_J3 > 180){
-        angle_J3 = angle_J3 - 360;
-    }
-    if(inv_angle_J2 > 180){
-        inv_angle_J2 = inv_angle_J2 - 360;
-    }
-    return inv_angle_J2 - angle_J3;
+    float encoderPositionJ2 = normalizeAngle180(
+        m_encoder2->getCorrectedAngleDeg());
+    float encoderPositionJ3 = normalizeAngle180(
+        m_encoder3->getCorrectedAngleDeg());
+    return normalizeAngle180(
+        J2_J3_PARALLEL_COUPLING_RATIO * encoderPositionJ2
+        + encoderPositionJ3);
 }
 
 /**
@@ -566,8 +592,26 @@ void JointController::step()
     stepStepper(m_stepper2, m_encoder2, &m_state_j2,
                 &m_setpoint_pos_j2, &m_setpoint_vel_j2,
                 J2_ENCODER_DRIVE_DIRECTION);
+
+    float encoderPositionJ2 = m_encoder2 != NULL
+                            ? normalizeAngle180(
+                                m_encoder2->getCorrectedAngleDeg())
+                            : m_stepperConfiguration->stepsToAngleDeg(
+                                m_stepper2->currentPosition());
+    float motorSetpointPositionJ3 = normalizeAngle180(
+        m_setpoint_pos_j3
+        - J2_J3_PARALLEL_COUPLING_RATIO * encoderPositionJ2);
+    float motorSetpointVelocityJ3 = m_setpoint_vel_j3;
+    if(m_state_j3 == JointControlState::VELOCITY_CONTROL){
+        // Encoder-space velocity transform: dE3 = dJ3 - dJ2. Derive dJ2
+        // from the currently generated M2 speed so acceleration is included.
+        float encoderVelocityJ2 = J2_ENCODER_DRIVE_DIRECTION *
+            m_stepperConfiguration->stepsToAngleDeg(m_stepper2->speed());
+        motorSetpointVelocityJ3 -=
+            J2_J3_PARALLEL_COUPLING_RATIO * encoderVelocityJ2;
+    }
     stepStepper(m_stepper3, m_encoder3, &m_state_j3,
-                &m_setpoint_pos_j3, &m_setpoint_vel_j3,
+                &motorSetpointPositionJ3, &motorSetpointVelocityJ3,
                 J3_ENCODER_DRIVE_DIRECTION);
     stepContinuousServo();
 
@@ -994,6 +1038,18 @@ void JointController::zeroJ6()
     m_j6_position_complete = true;
 }
 
+void JointController::engageJ3HoldForJ2Motion()
+{
+    // A standalone J2 command must not leave M3 idle: latch the current
+    // logical J3 angle so the parallel-link compensation follows J2 motion.
+    if(m_state_j3 == JointControlState::DISABLED){
+        std::vector<float> config = getConfiguration();
+        m_setpoint_pos_j3 = config[2];
+        m_setpoint_vel_j3 = DEFAULT_VEL_STEPPER;
+        m_state_j3 = JointControlState::POSITION_CONTROL;
+    }
+}
+
 /**
  * @brief Set the J1 Position
  * 
@@ -1013,6 +1069,7 @@ void JointController::setJ1Position(float position)
  */
 void JointController::setJ2Position(float position)
 {
+    engageJ3HoldForJ2Motion();
     m_state_j2 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j2 = position;
     m_setpoint_vel_j2 = DEFAULT_VEL_STEPPER;
@@ -1090,6 +1147,7 @@ void JointController::setJ1Velocity(float velocity)
  */
 void JointController::setJ2Velocity(float velocity)
 {
+    engageJ3HoldForJ2Motion();
     m_state_j2 = JointControlState::VELOCITY_CONTROL;
     m_setpoint_vel_j2 = velocity;
 }
@@ -1182,6 +1240,7 @@ void JointController::setJ1PositionVelocity(float position, float velocity)
  */
 void JointController::setJ2PositionVelocity(float position, float velocity)
 {
+    engageJ3HoldForJ2Motion();
     m_state_j2 = JointControlState::POSITION_CONTROL;
     m_setpoint_pos_j2 = position;
     m_setpoint_vel_j2 = velocity;
@@ -1332,7 +1391,12 @@ void JointController::moveToConfiguration(std::vector<float> config, float veloc
     float time2 = abs(stepsToGo2) / velocity_steps;
     
     long stepsToGo3 = config_steps[2] - currentConfig_steps[2];
-    float time3 = abs(stepsToGo3) / velocity_steps;
+    // J3 commands are logical linkage angles, but M3 drives E3. Even when
+    // logical J3 does not change, M3 must counter-rotate as J2 moves:
+    // delta E3 = delta J3 - coupling * delta J2.
+    long motorStepsToGo3 = stepsToGo3 - static_cast<long>(std::lround(
+        J2_J3_PARALLEL_COUPLING_RATIO * stepsToGo2));
+    float time3 = abs(motorStepsToGo3) / velocity_steps;
 
     float longestTime = time1;
     if (time2 > longestTime){
@@ -1353,7 +1417,7 @@ void JointController::moveToConfiguration(std::vector<float> config, float veloc
         float speed2 = m_stepperConfiguration->stepsToAngleDeg(speed2_steps);
         setJ2PositionVelocity(config[1], speed2);
 
-        float speed3_steps = stepsToGo3 / longestTime;
+        float speed3_steps = motorStepsToGo3 / longestTime;
         float speed3 = m_stepperConfiguration->stepsToAngleDeg(speed3_steps);
         setJ3PositionVelocity(config[2], speed3);
     }

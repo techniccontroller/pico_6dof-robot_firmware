@@ -9,7 +9,7 @@ COM_PORT_PICO_DEFAULT = "COM15"
 
 joint_names = ['J1', 'J2', 'J3', 'J4', 'J5', 'J6']
 motor_names = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6']
-encoder_joint_names = ['J2', 'J3', 'J4', 'J5', 'J6']
+encoder_joint_names = ['E2', 'E3', 'E4', 'E5', 'E6']
 
 stop_threads = False
 active_joint_motor = ""
