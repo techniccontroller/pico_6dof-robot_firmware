@@ -28,7 +28,7 @@ set(PICO_BOARD pico_w CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(pico_6dof-robot_main C CXX ASM)
+project(pico_6dof-robot_firmware C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
@@ -38,32 +38,32 @@ add_subdirectory(lib)
 
 
 # Add executable. Default name is the project name, version 0.1
-add_executable(pico_6dof-robot_main pico_6dof-robot_main.cpp )
+add_executable(pico_6dof-robot_firmware pico_6dof-robot_firmware.cpp )
 
-pico_set_program_name(pico_6dof-robot_main "pico_6dof-robot_main")
-pico_set_program_version(pico_6dof-robot_main "0.1")
+pico_set_program_name(pico_6dof-robot_firmware "pico_6dof-robot_firmware")
+pico_set_program_version(pico_6dof-robot_firmware "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(pico_6dof-robot_main 0)
-pico_enable_stdio_usb(pico_6dof-robot_main 1)
+pico_enable_stdio_uart(pico_6dof-robot_firmware 0)
+pico_enable_stdio_usb(pico_6dof-robot_firmware 1)
 
-target_compile_definitions(pico_6dof-robot_main PRIVATE
+target_compile_definitions(pico_6dof-robot_firmware PRIVATE
         PICO_MAX_SHARED_IRQ_HANDLERS=5
 )
 
-target_compile_options(pico_6dof-robot_main PRIVATE -Wno-psabi)
+target_compile_options(pico_6dof-robot_firmware PRIVATE -Wno-psabi)
 
 # Add the standard library to the build
-target_link_libraries(pico_6dof-robot_main
+target_link_libraries(pico_6dof-robot_firmware
         pico_stdlib)
 
 # Add the standard include files to the build
-target_include_directories(pico_6dof-robot_main PRIVATE
+target_include_directories(pico_6dof-robot_firmware PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # Add any user requested libraries
-target_link_libraries(pico_6dof-robot_main
+target_link_libraries(pico_6dof-robot_firmware
         hardware_i2c
         hardware_pio
         hardware_irq
@@ -79,6 +79,6 @@ target_link_libraries(pico_6dof-robot_main
         pico_cyw43_arch_none # we need Wifi to access the GPIO, but we don't need anything else
         )
 
-pico_add_extra_outputs(pico_6dof-robot_main)
+pico_add_extra_outputs(pico_6dof-robot_firmware)
 
 
