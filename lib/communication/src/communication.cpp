@@ -84,50 +84,44 @@ uint8_t Communication::extract_related_joint(char *cmd)
 std::vector<float> Communication::extract_cmd_values(const char *cmd)
 {
     std::vector<float> values;
-    char cmd_copy[50];
-    memset(cmd_copy, '\0', sizeof(cmd_copy));
-    strcpy(cmd_copy, cmd);
-
-    if (contains("(", cmd_copy))
+    const char *current = strchr(cmd, '(');
+    const char *end = current == NULL ? NULL : strchr(current + 1, ')');
+    if (current == NULL || end == NULL)
     {
-        char *start_char = strchr(cmd_copy, '(');
-        char *end_char = strchr(cmd_copy, ')');
-
-        if (start_char != NULL && end_char != NULL)
-        {
-            char value_str[20] = {'\0'};
-            start_char++;
-            for (int i = 0; start_char != end_char; i++)
-            {
-                value_str[i] = *start_char;
-                start_char++;
-            }
-
-            // split value_str by ',' and save to array
-            char *token = strtok(value_str, ",");
-            char *values_str[15];
-            int i = 0;
-            while (token != NULL)
-            {
-                values_str[i] = token;
-                token = strtok(NULL, ",");
-                i++;
-            }
-
-            // convert values_str to float and save to vector
-            for (int k = 0; k < i; k++)
-            {
-                float value = atof(values_str[k]);
-                values.push_back(value);
-                if (DEBUG_IS_ENABLED)
-                {
-                    char str_buffer[40];
-                    sprintf(str_buffer, "received value: %s -> %f\n", values_str[k], value);
-                    comm_func_write(str_buffer);
-                }
-            }
-        }
+        return values;
     }
+
+    current++;
+    while (current < end && values.size() < 15)
+    {
+        char *value_end = NULL;
+        float value = strtof(current, &value_end);
+        if (value_end == current || value_end > end)
+        {
+            values.clear();
+            return values;
+        }
+
+        values.push_back(value);
+        if (DEBUG_IS_ENABLED)
+        {
+            char str_buffer[48];
+            snprintf(str_buffer, sizeof(str_buffer), "received value: %f\n", value);
+            comm_func_write(str_buffer);
+        }
+
+        if (value_end == end)
+        {
+            break;
+        }
+        if (*value_end != ',')
+        {
+            values.clear();
+            return values;
+        }
+        current = value_end + 1;
+    }
+
     return values;
 }
 
@@ -334,13 +328,53 @@ void Communication::process_cmd(char *cmd)
 
 void Communication::check_incoming_cmds()
 {
-    uint16_t data_len = comm_func_read_all_bytes((uint8_t*)buffer, BUFFER_SIZE);
-    if (data_len > 0)
-    {
-        buffer[data_len] = '\0';
-        comm_func_write("data received: ");
-        comm_func_write(buffer);
+    uint8_t read_buffer[READ_CHUNK_SIZE];
+    uint16_t data_len = 0;
 
-        process_cmd(buffer);
+    while ((data_len = comm_func_read_all_bytes(read_buffer, READ_CHUNK_SIZE)) > 0)
+    {
+        for (uint16_t i = 0; i < data_len; i++)
+        {
+            const char byte = static_cast<char>(read_buffer[i]);
+
+            if (byte == '\r')
+            {
+                continue;
+            }
+
+            if (discarding_oversized_cmd)
+            {
+                if (byte == '\n')
+                {
+                    discarding_oversized_cmd = false;
+                }
+                continue;
+            }
+
+            if (byte == '\n')
+            {
+                if (buffer_index > 0)
+                {
+                    buffer[buffer_index] = '\0';
+                    comm_func_write("data received: ");
+                    comm_func_write(buffer);
+                    comm_func_write("\n");
+                    process_cmd(buffer);
+                    buffer_index = 0;
+                }
+                continue;
+            }
+
+            if (buffer_index < BUFFER_SIZE - 1)
+            {
+                buffer[buffer_index++] = byte;
+            }
+            else
+            {
+                buffer_index = 0;
+                discarding_oversized_cmd = true;
+                comm_func_write("Command rejected: exceeds 127 bytes\n");
+            }
+        }
     }
 }

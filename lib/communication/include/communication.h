@@ -34,7 +34,11 @@ public:
     void check_incoming_cmds();
 
 private:
-    static const int BUFFER_SIZE = 30; /**< Size of the buffer for incoming commands. */
+    /** Maximum command length, including the terminating null character. */
+    static const uint16_t BUFFER_SIZE = 128;
+
+    /** Size of one non-blocking read from the USB/UART input stream. */
+    static const uint8_t READ_CHUNK_SIZE = 64;
 
     static bool starts_with(const char *pre, const char *str);
     static bool contains(const char *substring, const char *str);
@@ -64,7 +68,9 @@ private:
     std::vector<float> extract_cmd_values(const char *cmd);
     void process_cmd(char *cmd);
 
-    char buffer[BUFFER_SIZE];               /**< Buffer for incoming commands. */
+    char buffer[BUFFER_SIZE] = {};          /**< Accumulates one newline-terminated command. */
+    uint16_t buffer_index = 0;              /**< Number of command bytes accumulated so far. */
+    bool discarding_oversized_cmd = false;  /**< Ignore input until newline after an overflow. */
     bool _manual_drive = false;             /**< Flag wheter the manual driving mode is active. */
     Robot *m_robot;                         /**< Pointer to the robot object. */
 };

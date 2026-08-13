@@ -14,7 +14,7 @@ uint16_t comm_func_read_all_bytes(uint8_t *dst, uint8_t len)
 
 void comm_func_write(const char *s)
 {
-    printf(s);
+    printf("%s", s);
 }
 
 static uint16_t _get_block(uint8_t *buffer, uint8_t len) {
