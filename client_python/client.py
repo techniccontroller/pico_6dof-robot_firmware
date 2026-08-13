@@ -18,7 +18,7 @@ robot_data = dict()
 all_lbls_joints = []
 encoder_bars = []
 encoder_value_labels = []
-lbl_current_pose = sg.Text("Current pose:")
+lbl_current_config = sg.Text("Current config:")
 
 def thread_function(name):
     """A thread which only handles the incoming data from Pico and outputs it to console
@@ -43,38 +43,6 @@ def thread_function(name):
             except UnicodeDecodeError:
                 print("Error decoding incoming data")
         time.sleep(0.001)
-
-def thread_square(name):
-
-    global ser
-
-    x_range = [0.0, 0.1, 0.1, 0.1, 0.1, 0.1, -0.1, -0.1, -0.1, -0.1, -0.1, 0.0]
-    y_range = [0.2, 0.2, 0.2, 0.3, 0.3, 0.2,  0.2,  0.2,  0.3,  0.3,  0.2, 0.2]
-    z_range = [0.1, 0.1, 0.2, 0.2, 0.1, 0.1,  0.1,  0.2,  0.2,  0.1,  0.1, 0.1]
-
-    #x_range = [   0.0,    0.1,    0.0,   -0.1,    0.0]
-    #y_range = [   0.2,    0.2,    0.2,    0.2,    0.2]
-    #z_range = [-0.117, -0.117, -0.117, -0.117, -0.117]
-
-    x = x_range[0]
-    y = y_range[0]
-    z = z_range[0]
-    for i in range(len(x_range)):
-
-        x_delta = (x_range[i] - x)/40
-        y_delta = (y_range[i] - y)/40
-        z_delta = (z_range[i] - z)/40
-
-        for i in range(40):
-            x_tmp = x + i*x_delta
-            y_tmp = y + i*y_delta
-            z_tmp = z + i*z_delta
-            ser.write(("COORD(" + str("%.3f" % x_tmp) + "," + str("%.3f" % y_tmp) + "," + str("%.3f" % z_tmp) + ")\n").encode())
-            time.sleep(0.05)
-
-        x = x_tmp
-        y = y_tmp
-        z = z_tmp
 
 def thread_demo(name):
 
@@ -248,7 +216,7 @@ def create_btn_layout_motor(names, btns, txts):
     return button_layout
 
 def update_lbls():
-    global robot_data, all_lbls_joints, encoder_bars, encoder_value_labels, lbl_current_pose
+    global robot_data, all_lbls_joints, encoder_bars, encoder_value_labels, lbl_current_config
     for i in range(len(all_lbls_joints)):
         if "config" in robot_data:
             all_lbls_joints[i].update(int(robot_data["config"][i]))
@@ -261,14 +229,12 @@ def update_lbls():
             encoder_bars[i].update(current_count=bar_value)
             encoder_value_labels[i].update(f"{angle:6.1f} deg")
     
-    if "pose" in robot_data and "config" in robot_data:
-        pose = robot_data["pose"]
-        pose = [round(elem, 2) for elem in pose]
+    if "config" in robot_data:
         config = robot_data["config"]
         config = [int(elem) for elem in config]
-        lbl_current_pose.update("Current pose [m]: " + str(pose) + "\nCurrent config [deg]: " + str(config))
+        lbl_current_config.update("Current config [deg]: " + str(config))
     else:
-        lbl_current_pose.update("Current pose: - \n Current config: -")  
+        lbl_current_config.update("Current config: -")
 
 
 if __name__ == "__main__":
@@ -299,14 +265,13 @@ if __name__ == "__main__":
     button_layout_motors = create_btn_layout_motor(motor_names, all_btns_motors, all_txts_motors)
     
     
-    txt_command = sg.Input(default_text="VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd)", size=35, tooltip="Possible commands: COORD(x,y,z), CONFIG(j1,j2,j3,j4,j5,j6), VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd), PID_J4(p,i,d), PID_J5(p,i,d), PID_J6(p,i,d), MIX_J56(j5_m5,j5_m6,j6_m5,j6_m6)")
+    txt_command = sg.Input(default_text="VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd)", size=35, tooltip="Possible commands: CONFIG(j1,j2,j3,j4,j5,j6), VEL_CONFIG(j1,j2,j3,j4,j5,j6,spd), PID_J4(p,i,d), PID_J5(p,i,d), PID_J6(p,i,d), MIX_J56(j5_m5,j5_m6,j6_m5,j6_m6)")
     btn_send_command = sg.Button("SEND", size=7)
     btn_save_zeros = sg.Button("SAVE ZEROS", size=15)
     btn_load_zeros = sg.Button("LOAD ZEROS", size=15)
     btn_move_to_zero = sg.Button("MOVE TO ZERO", size=15, tooltip="Move all joints to zero position")
     btn_move_to_store = sg.Button("MOVE TO STORE", size=15, tooltip="Move all joints to stored position")
-    btn_start_square = sg.Button("START SQUARE", size=15, tooltip="Start predefined square movement in task space")
-    btn_start_demo = sg.Button("START DEMO", size=15, tooltip="Start predefined demo movement in task space")
+    btn_start_demo = sg.Button("START DEMO", size=15, tooltip="Start predefined joint-space demo")
     btn_init_j1 = sg.Button("INIT J1", size=15, tooltip="Home J1 using the Hall sensor endstop")
 
     btn_gripper_open = sg.Button("OPEN", size=15)
@@ -316,7 +281,7 @@ if __name__ == "__main__":
 
     container_status_layout = sg.Column([       [sg.HorizontalSeparator()],
                                                 [sg.Text("Status:", size=(60, 2), justification='center')], 
-                                                [lbl_current_pose],
+                                                [lbl_current_config],
                                                 [sg.Text("Corrected magnetic encoder positions (-180 to 180 deg):")],
                                                 [sg.Column(encoder_layout, element_justification='left')]], element_justification='center')
 
@@ -345,7 +310,7 @@ if __name__ == "__main__":
 
     container_default_configs_layout = sg.Column([ [sg.HorizontalSeparator()],
                                                     [sg.Text("Default configurations:", size=(60, 2), justification='center')], 
-                                                    [btn_move_to_zero, btn_move_to_store, btn_start_square],
+                                                    [btn_move_to_zero, btn_move_to_store],
                                                     [btn_init_j1, btn_start_demo]], element_justification='center')
 
     layout = [  [container_status_layout],
@@ -395,10 +360,6 @@ if __name__ == "__main__":
         else: 
             dir = "FORWARD"
         
-        if event == "START SQUARE":
-            x = threading.Thread(target=thread_square, args=(1,), daemon=True)
-            x.start()
-        
         if event == "START DEMO":
             x = threading.Thread(target=thread_demo, args=(1,), daemon=True)
             x.start()
@@ -413,7 +374,6 @@ if __name__ == "__main__":
             send_init_cmd("J1")
         
         elif event == "SEND":
-            #ser.write(("COORD(" + txt_coord.get() + ")\n").encode())
             ser.write((txt_command.get() + "\n").encode())
         
         elif event == "SAVE ZEROS":

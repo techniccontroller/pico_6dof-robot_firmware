@@ -198,13 +198,6 @@ void Robot::initEEPROM()
     EEPROM.begin(EEPROM_SIZE);
 }
 
-void Robot::moveToPose(std::vector<float> pose, float velocity)
-{
-    std::vector<float> config = inverseKinematics(pose[0], pose[1], pose[2]);
-    printf("config: %f, %f, %f\n", config[0], config[1], config[2]);
-    moveToConfiguration(config, velocity);
-}
-
 void Robot::openGripper()
 {
     m_gripper.open();
@@ -223,11 +216,6 @@ void Robot::setGripperPosition(float position)
 std::vector<float> Robot::getConfiguration()
 {
     return m_jointController.getConfiguration();
-}
-
-std::vector<float> Robot::getPose()
-{
-    return forwardKinematics(getConfiguration());
 }
 
 float Robot::getJointPosition(int joint)
@@ -261,14 +249,10 @@ std::string Robot::getRobotDataAsJson()
     nlohmann::json jsonObj;
     
     std::vector<float> config = getConfiguration();
-    std::vector<float> pose = getPose();
-
     jsonObj["robot_data"]["config"] = config;
 
     jsonObj["robot_data"]["j1_hall_sensor_raw"] = m_j1HallSensorRaw;
     jsonObj["robot_data"]["j1_homed"] = m_jointController.isJ1Homed();
-
-    jsonObj["robot_data"]["pose"] = pose;
 
     float encoderE2 = normalizeAngle180(m_encoderJ2.getCorrectedAngleDeg());
     float encoderE3 = normalizeAngle180(m_encoderJ3.getCorrectedAngleDeg());
@@ -330,91 +314,6 @@ void Robot::setJ5J6Mixing(
  */
 void Robot::moveToConfiguration(std::vector<float> config, float velocity){
     m_jointController.moveToConfiguration(config, velocity);
-}
-
-/**
- * @brief Calculate the configuration of the robot from a given pose
- * 
- * @param x     X position of the robot [m]
- * @param y     Y position of the robot [m]
- * @param z     Z position of the robot [m]
- * @param gripperPose    Pose of the gripper (NONE, DOWN, LEVEL)
- * @return std::vector<float>   Configuration of the robot [deg]
- */
-std::vector<float> Robot::inverseKinematics(float x, float y, float z, GripperPose gripperPose){
-    float l1 = 0.21;
-    float l2 = 0.23;
-
-    float b = sqrt(x*x+y*y);
-    float a = sqrt(b*b+z*z);
-    float alpha = atan2(z, b);
-    float gamma = acos((l1*l1+l2*l2-a*a)/(2*l1*l2));
-    float beta = acos((l1*l1+a*a-l2*l2)/(2*l1*a));
-    float q1 = M_PI/2 - alpha - beta;
-    float q2 = M_PI - gamma;
-    float theta = M_PI/2 - q1;
-
-
-    float m0 = atan2(x, y);
-    float m1 = q1;
-    float m2 = q2-theta;
-
-    std::vector<float> result;
-    result.push_back(m0 * 180.0 / M_PI);
-    result.push_back(m1 * 180.0 / M_PI);
-    result.push_back(-m2 * 180.0 / M_PI);
-    result.push_back(0.0f); // The current Cartesian IK keeps J4 at its zero position.
-
-    if(gripperPose == GripperPose::DOWN){
-        float j5 = -(M_PI/2 - m2);
-        float j6 = m0;
-        result.push_back(j5 * 180.0 / M_PI);
-        result.push_back(j6 * 180.0 / M_PI);
-    }
-    else if(gripperPose == GripperPose::LEVEL){
-        float j5 = m2;
-        float j6 = 0;
-        result.push_back(j5 * 180.0 / M_PI);
-        result.push_back(j6 * 180.0 / M_PI);
-    }
-    return result;
-}
-
-/**
- * @brief Calculate the pose of the robot from a given configuration
- * 
- * @param config    Configuration of the robot [deg]
- * @return std::vector<float>   Pose of the robot [m]
- */
-std::vector<float> Robot::forwardKinematics(std::vector<float> config)
-{
-    float l1 = 0.21;
-    float l2 = 0.23;
-
-    float m0 = config[0] / 180.0 * M_PI;
-    float m1 = config[1] / 180.0 * M_PI;
-    float m2 = -config[2] / 180.0 * M_PI;
-    float q0 = m0;
-    float q1 = m1;
-    float theta = M_PI/2 - q1;
-    float q2 = m2 + theta;
-
-    float gamma = M_PI - q2;
-    float a = sqrt(l1*l1 + l2*l2 - 2 * l1 * l2 * cos(gamma));
-    float beta = acos((l1*l1 + a*a - l2*l2) / (2 * l1 * a));
-    float alpha = M_PI/2 - beta - q1;
-
-    float z = a * sin(alpha);
-    float b = a * cos(alpha);
-
-    float x = b * sin(q0);
-    float y = b * cos(q0);
-
-    std::vector<float> result;
-    result.push_back(x);
-    result.push_back(y);
-    result.push_back(z);
-    return result;
 }
 
 void Robot::initJoint(int joint){

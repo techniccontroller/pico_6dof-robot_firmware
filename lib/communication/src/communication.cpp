@@ -237,12 +237,6 @@ void Communication::process_cmd(char *cmd)
         m_robot->setMode(Robot::RobotMode::JOINTCONTROL);
         comm_func_write("mode joint is set\n");
     }
-    else if (starts_with("COORD", cmd))
-    {
-        std::vector<float> pose = extract_cmd_values(cmd);
-        m_robot->moveToPose(pose, 10);
-        comm_func_write("COORD is set\n");
-    }
     else if(starts_with("CONFIG", cmd))
     {
         std::vector<float> config = extract_cmd_values(cmd);

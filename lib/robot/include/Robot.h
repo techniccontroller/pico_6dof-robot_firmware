@@ -31,13 +31,6 @@ public:
         AUTO
     };
 
-    enum GripperPose
-    {
-        NONE,
-        DOWN,
-        LEVEL,
-    };
-
     Robot(void);
 
     void setMode(RobotMode mode);
@@ -59,14 +52,12 @@ public:
     void setJointPositionVelocity(int joint, float position, float velocity);
 
     void moveToConfiguration(std::vector<float> config, float velocity);
-    void moveToPose(std::vector<float> pose, float velocity);
 
     void openGripper();
     void closeGripper();
     void setGripperPosition(float position);
 
     std::vector<float> getConfiguration();
-    std::vector<float> getPose();
 
     float getJointPosition(int joint);
 
@@ -104,6 +95,4 @@ private:
     void writeSensorCalibrationData(AS5600 *encoder, int addr);
     void initEEPROM();
 
-    std::vector<float> inverseKinematics(float x, float y, float z, GripperPose gripperPose = GripperPose::DOWN);
-    std::vector<float> forwardKinematics(std::vector<float> config);
 };
