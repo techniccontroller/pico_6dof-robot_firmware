@@ -378,7 +378,7 @@ if __name__ == "__main__":
                                                     [btn_move_to_zero, btn_move_to_store],
                                                     [btn_init_j1, btn_start_demo]], element_justification='center')
 
-    layout = [  [container_status_layout],
+    content_layout = [[container_status_layout],
                 [container_raw_command_layout], 
                 [container_zeros_layout],
                 [container_gripper_layout],
@@ -389,8 +389,14 @@ if __name__ == "__main__":
                 [container_btn_layout_motors],
                 ]
 
-    # Open near the top-left so the title bar remains accessible.
-    window = sg.Window("StepperMotorControl", layout, margins=(50, 50), location=(20, 20), finalize=True)
+    window = sg.Window(
+        "6DoF Robot Control GUI",
+        content_layout,
+        margins=(10, 10),
+        location=(20, 20),
+        resizable=True,
+        finalize=True,
+    )
     
     container_btn_layout_joints.hide_row()
     container_btn_layout_motors.hide_row()
