@@ -7,7 +7,7 @@
 #include "gpio_functions.h"
 #include "defines_constants.h"
 #include "Robot.h"
-#include "Communication.h"
+#include "communication.h"
 
 #define PICO_W 1
 #ifdef PICO_W

@@ -1,4 +1,4 @@
-#include "AS5600.h"
+#include "as5600.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <machine/endian.h>

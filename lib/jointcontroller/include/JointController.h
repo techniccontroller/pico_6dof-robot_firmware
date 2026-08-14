@@ -17,7 +17,7 @@
 #include <AccelStepper.h>
 #include <DCMotor.h>
 #include <ContinuousServo.h>
-#include <AS5600.h>
+#include <as5600.h>
 #include <defines_constants.h>
 #include <StepperConfiguration.h>
 

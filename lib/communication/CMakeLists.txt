@@ -1,7 +1,7 @@
 add_library(
     communication_lib
-    src/Communication.cpp
-    include/Communication.h
+    src/communication.cpp
+    include/communication.h
 )
 
 target_link_libraries(communication_lib defines_constants_lib robot_lib comm_hal)

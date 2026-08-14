@@ -4,7 +4,7 @@
 #include "hardware/i2c.h"
 #include "hardware/pio.h"
 #include "hardware/clocks.h"
-#include <AS5600.h>
+#include <as5600.h>
 #include <AccelStepper.h>
 #include <StepperConfiguration.h>
 #include <DCMotor.h>

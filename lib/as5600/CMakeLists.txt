@@ -1,7 +1,7 @@
 add_library(
     as5600_lib
-    src/AS5600.cpp
-    include/AS5600.h
+    src/as5600.cpp
+    include/as5600.h
 )
 
 target_link_libraries(as5600_lib hardware_i2c)

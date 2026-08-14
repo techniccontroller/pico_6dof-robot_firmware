@@ -1,4 +1,4 @@
-#include "Communication.h"
+#include "communication.h"
 #include <stdlib.h>
 
 
