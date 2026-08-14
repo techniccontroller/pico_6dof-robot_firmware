@@ -1,4 +1,5 @@
 import serial
+from serial.tools import list_ports
 import PySimpleGUI as sg
 import threading
 import sys
@@ -19,6 +20,75 @@ all_lbls_joints = []
 encoder_bars = []
 encoder_value_labels = []
 lbl_current_config = sg.Text("Current config:")
+
+
+def get_serial_ports():
+    """Return the currently available serial port device names."""
+    return [port.device for port in sorted(list_ports.comports(), key=lambda port: port.device)]
+
+
+def connect_serial_port(preferred_port=None):
+    """Show a connection dialog and return an opened serial port, or None on cancel."""
+    available_ports = get_serial_ports()
+    selected_port = ""
+
+    if preferred_port in available_ports:
+        selected_port = preferred_port
+    elif COM_PORT_PICO_DEFAULT in available_ports:
+        selected_port = COM_PORT_PICO_DEFAULT
+    elif available_ports:
+        selected_port = available_ports[0]
+
+    layout = [
+        [sg.Text("Select the robot serial port:")],
+        [
+            sg.Combo(
+                available_ports,
+                default_value=selected_port,
+                key="-SERIAL_PORT-",
+                readonly=True,
+                size=(24, 1),
+            ),
+            sg.Button("Refresh", key="-REFRESH_PORTS-"),
+        ],
+        [sg.Text("" if available_ports else "No serial ports found.", key="-CONNECT_STATUS-", size=(48, 2), text_color="red")],
+        [sg.Button("Connect", key="-CONNECT-", bind_return_key=True), sg.Button("Cancel")],
+    ]
+    connect_window = sg.Window("Connect to robot", layout, finalize=True)
+
+    while True:
+        event, values = connect_window.read()
+        if event in (sg.WIN_CLOSED, "Cancel"):
+            connect_window.close()
+            return None
+
+        if event == "-REFRESH_PORTS-":
+            available_ports = get_serial_ports()
+            selected_port = values.get("-SERIAL_PORT-", "")
+            if selected_port not in available_ports:
+                selected_port = available_ports[0] if available_ports else ""
+            connect_window["-SERIAL_PORT-"].update(values=available_ports, value=selected_port)
+            connect_window["-CONNECT_STATUS-"].update(
+                "" if available_ports else "No serial ports found."
+            )
+
+        elif event == "-CONNECT-":
+            selected_port = values.get("-SERIAL_PORT-", "")
+            if not selected_port:
+                connect_window["-CONNECT_STATUS-"].update("Select a serial port first.")
+                continue
+
+            try:
+                connection = serial.Serial(selected_port, 115200, timeout=0.05)
+            except (serial.SerialException, OSError) as error:
+                connect_window["-CONNECT_STATUS-"].update(
+                    f"Could not connect to {selected_port}: {error}"
+                )
+                continue
+
+            connect_window.close()
+            print("Connected to serial port: " + selected_port)
+            return connection
 
 def thread_function(name):
     """A thread which only handles the incoming data from Pico and outputs it to console
@@ -239,15 +309,10 @@ def update_lbls():
 
 if __name__ == "__main__":
 
-    if len(sys.argv) == 2:
-        com_port = sys.argv[1]
-    else:
-        com_port = COM_PORT_PICO_DEFAULT
-    
-    print("Used COM port: " + str(com_port))
-
-    # open serial port
-    ser = serial.Serial(com_port, 115200, timeout=0.05)
+    preferred_port = sys.argv[1] if len(sys.argv) == 2 else None
+    ser = connect_serial_port(preferred_port)
+    if ser is None:
+        sys.exit(0)
 
     # radio button group with 3 radio buttons (AUTO, JOINT, MOTOR)
     radio_layout_mode = [[sg.Radio("AUTO", "RADIO1", default=True, key="AUTO", enable_events=True), sg.Radio("JOINT", "RADIO1", key="JOINT", enable_events=True), sg.Radio("MOTOR", "RADIO1", key="MOTOR", enable_events=True)]]
@@ -428,3 +493,5 @@ if __name__ == "__main__":
         
     stop_threads = True
     window.close()
+    if ser.is_open:
+        ser.close()
