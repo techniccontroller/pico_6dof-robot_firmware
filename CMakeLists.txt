@@ -49,6 +49,7 @@ pico_enable_stdio_usb(pico_6dof-robot_firmware 1)
 
 target_compile_definitions(pico_6dof-robot_firmware PRIVATE
         PICO_MAX_SHARED_IRQ_HANDLERS=5
+        PICO_CORE1_STACK_SIZE=4096
 )
 
 target_compile_options(pico_6dof-robot_firmware PRIVATE -Wno-psabi)
@@ -68,6 +69,8 @@ target_link_libraries(pico_6dof-robot_firmware
         hardware_pio
         hardware_irq
         hardware_clocks
+        pico_multicore
+        pico_util
         comm_hal
         gpio_hal
         dcmotor_lib

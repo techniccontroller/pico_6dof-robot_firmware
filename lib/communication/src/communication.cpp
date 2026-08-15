@@ -2,9 +2,20 @@
 #include <stdlib.h>
 
 
-Communication::Communication(Robot *robot)
+Communication::Communication(queue_t *commandQueue)
 {
-    m_robot = robot;
+    m_command_queue = commandQueue;
+}
+
+bool Communication::enqueue_command(const RobotCommand& command)
+{
+    if (queue_try_add(m_command_queue, &command))
+    {
+        return true;
+    }
+
+    comm_func_write("Command rejected: robot command queue is full\n");
+    return false;
 }
 
 bool Communication::starts_with(const char *pre, const char *str)
@@ -127,29 +138,34 @@ std::vector<float> Communication::extract_cmd_values(const char *cmd)
 
 void Communication::process_cmd(char *cmd)
 {
+    RobotCommand command;
+
     if (starts_with("CMD_", cmd))
     {
         uint8_t joint = extract_related_joint(cmd);
         uint8_t motor = extract_related_motor(cmd);
 
         if(joint != Joint::JNONE){
+            command.target = joint;
             if (contains("_INIT", cmd))
             {
-                m_robot->initJoint(joint);
+                command.type = RobotCommandType::INIT_JOINT;
+                if (!enqueue_command(command)) return;
                 if (DEBUG_IS_ENABLED)
                 {
                     char str_buffer[40];
-                    sprintf(str_buffer, "Init Joint J%d\n", joint);
+                    snprintf(str_buffer, sizeof(str_buffer), "Init Joint J%d\n", joint);
                     comm_func_write(str_buffer);
                 }
             }
             else if (contains("_ZERO", cmd))
             {
-                m_robot->zeroJoint(joint);
+                command.type = RobotCommandType::ZERO_JOINT;
+                if (!enqueue_command(command)) return;
                 if (DEBUG_IS_ENABLED)
                 {
                     char str_buffer[40];
-                    sprintf(str_buffer, "Zero Joint J%d\n", joint);
+                    snprintf(str_buffer, sizeof(str_buffer), "Zero Joint J%d\n", joint);
                     comm_func_write(str_buffer);
                 }
             }
@@ -157,11 +173,21 @@ void Communication::process_cmd(char *cmd)
             {
                 std::vector<float> values = extract_cmd_values(cmd);
                 if(values.size() > 1){
-                    m_robot->setJointPositionVelocity(joint, values[0], values[1]);
+                    command.type = RobotCommandType::SET_JOINT_POSITION_VELOCITY;
+                    command.value_count = 2;
+                    command.values[0] = values[0];
+                    command.values[1] = values[1];
                 }
-                else{
-                    m_robot->setJointPosition(joint, values[0]);
+                else if(values.size() == 1){
+                    command.type = RobotCommandType::SET_JOINT_POSITION;
+                    command.value_count = 1;
+                    command.values[0] = values[0];
                 }
+                else {
+                    comm_func_write("Command rejected: joint setpoint is missing\n");
+                    return;
+                }
+                enqueue_command(command);
             }
             else
             {
@@ -172,20 +198,27 @@ void Communication::process_cmd(char *cmd)
                 }
                 if (contains("BACKWARD_START", cmd))
                 {
-                    speed = abs(extract_cmd_values(cmd)[0]);
+                    std::vector<float> values = extract_cmd_values(cmd);
+                    if (values.empty()) return;
+                    speed = abs(values[0]);
                 }
                 if (contains("FORWARD_START", cmd))
                 {
-                    speed = abs(extract_cmd_values(cmd)[0]);
+                    std::vector<float> values = extract_cmd_values(cmd);
+                    if (values.empty()) return;
+                    speed = abs(values[0]);
                     speed *= -1;
                 }
 
-                m_robot->setJointVelocity(joint, speed);
+                command.type = RobotCommandType::SET_JOINT_VELOCITY;
+                command.value_count = 1;
+                command.values[0] = speed;
+                if (!enqueue_command(command)) return;
                 
                 if (DEBUG_IS_ENABLED)
                 {
-                    char str_buffer[20];
-                    sprintf(str_buffer, "Set Velocity, joint: %d, spd: %f\n", joint, speed);
+                    char str_buffer[64];
+                    snprintf(str_buffer, sizeof(str_buffer), "Set Velocity, joint: %d, spd: %f\n", joint, speed);
                     comm_func_write(str_buffer);
                 }
             }
@@ -197,20 +230,28 @@ void Communication::process_cmd(char *cmd)
             }
             if (contains("BACKWARD_START", cmd))
             {
-                speed = abs(extract_cmd_values(cmd)[0]);
+                std::vector<float> values = extract_cmd_values(cmd);
+                if (values.empty()) return;
+                speed = abs(values[0]);
             }
             if (contains("FORWARD_START", cmd))
             {
-                speed = abs(extract_cmd_values(cmd)[0]);
+                std::vector<float> values = extract_cmd_values(cmd);
+                if (values.empty()) return;
+                speed = abs(values[0]);
                 speed *= -1;
             }
 
-            m_robot->setMotorVelocity(motor, speed);
+            command.type = RobotCommandType::SET_MOTOR_VELOCITY;
+            command.target = motor;
+            command.value_count = 1;
+            command.values[0] = speed;
+            if (!enqueue_command(command)) return;
             
             if (DEBUG_IS_ENABLED)
             {
-                char str_buffer[20];
-                sprintf(str_buffer, "Set Velocity, motor: %d, spd: %f\n", motor, speed);
+                char str_buffer[64];
+                snprintf(str_buffer, sizeof(str_buffer), "Set Velocity, motor: %d, spd: %f\n", motor, speed);
                 comm_func_write(str_buffer);
             }
         }
@@ -218,68 +259,97 @@ void Communication::process_cmd(char *cmd)
     }
     else if(starts_with("SET_MODE_AUTO", cmd))
     {
-        m_robot->setMode(Robot::RobotMode::AUTO);
+        command.type = RobotCommandType::SET_MODE;
+        command.target = 2;
+        if (!enqueue_command(command)) return;
         comm_func_write("mode auto is set\n");
     }
     else if(starts_with("SET_MODE_MOTOR", cmd))
     {
-        m_robot->setMode(Robot::RobotMode::MOTORCONTROL);
+        command.type = RobotCommandType::SET_MODE;
+        command.target = 1;
+        if (!enqueue_command(command)) return;
         comm_func_write("mode motor is set\n");
     }
     else if(starts_with("SET_MODE_JOINT", cmd))
     {
-        m_robot->setMode(Robot::RobotMode::JOINTCONTROL);
+        command.type = RobotCommandType::SET_MODE;
+        command.target = 0;
+        if (!enqueue_command(command)) return;
         comm_func_write("mode joint is set\n");
     }
     else if(starts_with("CONFIG", cmd))
     {
         std::vector<float> config = extract_cmd_values(cmd);
-        m_robot->moveToConfiguration(config, 10);
+        if (config.size() != 6)
+        {
+            comm_func_write("CONFIG requires 6 values\n");
+            return;
+        }
+        command.type = RobotCommandType::MOVE_TO_CONFIGURATION;
+        command.value_count = 7;
+        for (size_t i = 0; i < 6; ++i) command.values[i] = config[i];
+        command.values[6] = 10.0f;
+        if (!enqueue_command(command)) return;
         comm_func_write("CONFIG is set\n");
     }
     else if(starts_with("VEL_CONFIG", cmd))
     {
         std::vector<float> config_vel = extract_cmd_values(cmd);
         if(config_vel.size() == 7){
-            float vel = config_vel[6];
-            config_vel.pop_back();
-            m_robot->moveToConfiguration(config_vel, vel);
+            command.type = RobotCommandType::MOVE_TO_CONFIGURATION;
+            command.value_count = 7;
+            for (size_t i = 0; i < 7; ++i) command.values[i] = config_vel[i];
+            if (!enqueue_command(command)) return;
             comm_func_write("VEL_CONFIG is set\n");
-        }        
+        }
+        else comm_func_write("VEL_CONFIG requires 7 values\n");
     }
     else if (starts_with("PID_J4", cmd))
     {
         std::vector<float> values = extract_cmd_values(cmd);
-
-        m_robot->setPID(Joint::J4, values[0], values[1], values[2]);
+        if (values.size() != 3) return;
+        command.type = RobotCommandType::SET_PID;
+        command.target = Joint::J4;
+        command.value_count = 3;
+        for (size_t i = 0; i < 3; ++i) command.values[i] = values[i];
+        if (!enqueue_command(command)) return;
         if (DEBUG_IS_ENABLED)
         {
-            char str_buffer[20];
-            sprintf(str_buffer, "J4 PID set: %f, %f, %f", values[0], values[1], values[2]);
+            char str_buffer[80];
+            snprintf(str_buffer, sizeof(str_buffer), "J4 PID set: %f, %f, %f", values[0], values[1], values[2]);
             comm_func_write(str_buffer);
         }
     }
     else if (starts_with("PID_J5", cmd))
     {
         std::vector<float> values = extract_cmd_values(cmd);
-
-        m_robot->setPID(Joint::J5, values[0], values[1], values[2]);
+        if (values.size() != 3) return;
+        command.type = RobotCommandType::SET_PID;
+        command.target = Joint::J5;
+        command.value_count = 3;
+        for (size_t i = 0; i < 3; ++i) command.values[i] = values[i];
+        if (!enqueue_command(command)) return;
         if (DEBUG_IS_ENABLED)
         {
-            char str_buffer[20];
-            sprintf(str_buffer, "J5 PID set: %f, %f, %f", values[0], values[1], values[2]);
+            char str_buffer[80];
+            snprintf(str_buffer, sizeof(str_buffer), "J5 PID set: %f, %f, %f", values[0], values[1], values[2]);
             comm_func_write(str_buffer);
         }
     }
     else if (starts_with("PID_J6", cmd))
     {
         std::vector<float> values = extract_cmd_values(cmd);
-
-        m_robot->setPID(Joint::J6, values[0], values[1], values[2]);
+        if (values.size() != 3) return;
+        command.type = RobotCommandType::SET_PID;
+        command.target = Joint::J6;
+        command.value_count = 3;
+        for (size_t i = 0; i < 3; ++i) command.values[i] = values[i];
+        if (!enqueue_command(command)) return;
         if (DEBUG_IS_ENABLED)
         {
-            char str_buffer[20];
-            sprintf(str_buffer, "J6 PID set: %f, %f, %f", values[0], values[1], values[2]);
+            char str_buffer[80];
+            snprintf(str_buffer, sizeof(str_buffer), "J6 PID set: %f, %f, %f", values[0], values[1], values[2]);
             comm_func_write(str_buffer);
         }
     }
@@ -287,8 +357,10 @@ void Communication::process_cmd(char *cmd)
     {
         std::vector<float> values = extract_cmd_values(cmd);
         if(values.size() == 4){
-            m_robot->setJ5J6Mixing(
-                values[0], values[1], values[2], values[3]);
+            command.type = RobotCommandType::SET_J5_J6_MIXING;
+            command.value_count = 4;
+            for (size_t i = 0; i < 4; ++i) command.values[i] = values[i];
+            if (!enqueue_command(command)) return;
             comm_func_write("J5/J6 mixing matrix set\n");
         }
         else{
@@ -297,29 +369,38 @@ void Communication::process_cmd(char *cmd)
     }
     else if(starts_with("SAVE_ZEROS", cmd))
     {
-        m_robot->writeAllSensorCalibrationData();
+        command.type = RobotCommandType::SAVE_ZEROS;
+        if (!enqueue_command(command)) return;
         comm_func_write("Zeros saved\n");
     }
     else if(starts_with("LOAD_ZEROS", cmd))
     {
-        m_robot->loadAllSensorCalibrationData();
+        command.type = RobotCommandType::LOAD_ZEROS;
+        if (!enqueue_command(command)) return;
         comm_func_write("Zeros loaded\n");
     }
     else if(starts_with("GRIP_", cmd)){
         if(starts_with("GRIP_OPEN", cmd)){
-            m_robot->openGripper();
+            command.type = RobotCommandType::OPEN_GRIPPER;
+            if (!enqueue_command(command)) return;
             comm_func_write("Gripper opened\n");
         }
         else if(starts_with("GRIP_CLOSE", cmd)){
-            m_robot->closeGripper();
+            command.type = RobotCommandType::CLOSE_GRIPPER;
+            if (!enqueue_command(command)) return;
             comm_func_write("Gripper closed\n");
         }
         else if(starts_with("GRIP_SET", cmd)){
-            int position = extract_cmd_values(cmd)[0];
-            m_robot->setGripperPosition(position);
+            std::vector<float> values = extract_cmd_values(cmd);
+            if (values.empty()) return;
+            int position = values[0];
+            command.type = RobotCommandType::SET_GRIPPER_POSITION;
+            command.value_count = 1;
+            command.values[0] = position;
+            if (!enqueue_command(command)) return;
             if(DEBUG_IS_ENABLED){
-                char str_buffer[20];
-                sprintf(str_buffer, "Gripper position set: %d", position);
+                char str_buffer[48];
+                snprintf(str_buffer, sizeof(str_buffer), "Gripper position set: %d", position);
                 comm_func_write(str_buffer);
             }
         }

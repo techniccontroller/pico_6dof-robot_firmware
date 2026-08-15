@@ -188,8 +188,14 @@ void JointController::stepStepper(
  */
 std::vector<float> JointController::getConfiguration()
 {
-    std::vector<float> config;
-    config.push_back(m_stepperConfiguration->stepsToAngleDeg(m_stepper1->currentPosition()));
+    float values[6];
+    copyConfiguration(values);
+    return std::vector<float>(values, values + 6);
+}
+
+void JointController::copyConfiguration(float config[6])
+{
+    config[0] = m_stepperConfiguration->stepsToAngleDeg(m_stepper1->currentPosition());
     float encoderPositionJ2 = m_encoder2 != NULL
                      ? m_encoder2->getCorrectedAngleDeg()
                      : m_stepperConfiguration->stepsToAngleDeg(m_stepper2->currentPosition());
@@ -202,10 +208,10 @@ std::vector<float> JointController::getConfiguration()
     // The parallel linkage makes E3 a motor/link coordinate rather than the
     // logical angle between link 2 and link 3. Expose standard serial-joint
     // coordinates to planners: J2 = E2, J3 = E2 + E3.
-    config.push_back(encoderPositionJ2);
-    config.push_back(normalizeAngle180(
+    config[1] = encoderPositionJ2;
+    config[2] = normalizeAngle180(
         J2_J3_PARALLEL_COUPLING_RATIO * encoderPositionJ2
-        + encoderPositionJ3));
+        + encoderPositionJ3);
     float positionJ4 = m_encoder4 != NULL
                      ? m_encoder4->getCorrectedAngleDeg() : 0.0f;
     float positionJ5 = m_encoder5 != NULL
@@ -215,10 +221,9 @@ std::vector<float> JointController::getConfiguration()
     if(positionJ4 > 180.0f) positionJ4 -= 360.0f;
     if(positionJ5 > 180.0f) positionJ5 -= 360.0f;
     if(positionJ6 > 180.0f) positionJ6 -= 360.0f;
-    config.push_back(positionJ4);
-    config.push_back(positionJ5);
-    config.push_back(positionJ6);
-    return config;
+    config[3] = positionJ4;
+    config[4] = positionJ5;
+    config[5] = positionJ6;
 }
 
 /**
@@ -1053,7 +1058,8 @@ void JointController::engageJ3HoldForJ2Motion()
     // A standalone J2 command must not leave M3 idle: latch the current
     // logical J3 angle so the parallel-link compensation follows J2 motion.
     if(m_state_j3 == JointControlState::DISABLED){
-        std::vector<float> config = getConfiguration();
+        float config[6];
+        copyConfiguration(config);
         m_setpoint_pos_j3 = config[2];
         m_setpoint_vel_j3 = DEFAULT_VEL_STEPPER;
         m_state_j3 = JointControlState::POSITION_CONTROL;
@@ -1383,7 +1389,16 @@ void JointController::moveToConfiguration(std::vector<float> config, float veloc
     if(config.size() < 3){
         return;
     }
-    std::vector<float> currentConfig = getConfiguration();
+    float values[6];
+    copyConfiguration(values);
+    for (size_t i = 0; i < config.size() && i < 6; ++i) values[i] = config[i];
+    moveToConfiguration(values, velocity);
+}
+
+void JointController::moveToConfiguration(const float config[6], float velocity)
+{
+    float currentConfig[6];
+    copyConfiguration(currentConfig);
 
     long config_steps[3];
     config_steps[0] = m_stepperConfiguration->angleDegToSteps(config[0]);
@@ -1435,9 +1450,7 @@ void JointController::moveToConfiguration(std::vector<float> config, float veloc
         setJ3PositionVelocity(config[2], speed3);
     }
 
-    if(config.size() >= 6){
-        setJ4Position(config[3]);
-        setJ5Position(config[4]);
-        setJ6Position(config[5]);
-    }
+    setJ4Position(config[3]);
+    setJ5Position(config[4]);
+    setJ6Position(config[5]);
 }

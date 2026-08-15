@@ -23,6 +23,7 @@
 #include "EEPROM.h"
 #include <hardware/flash.h>
 #include <hardware/sync.h>
+#include <pico/multicore.h>
 
 #define FLASH_TARGET_OFFSET (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)
 
@@ -108,15 +109,23 @@ bool EEPROMClass::commit() {
         return false;
     }
 
+    if (_multicoreLockoutEnabled) {
+        multicore_lockout_start_blocking();
+    }
     uint32_t ints = save_and_disable_interrupts();
-    //rp2040.idleOtherCore();
     flash_range_erase(FLASH_TARGET_OFFSET, FLASH_SECTOR_SIZE);
     flash_range_program(FLASH_TARGET_OFFSET, _data, _size);
-    //rp2040.resumeOtherCore();
     restore_interrupts(ints);
+    if (_multicoreLockoutEnabled) {
+        multicore_lockout_end_blocking();
+    }
     _dirty = false;
 
     return true;
+}
+
+void EEPROMClass::enableMulticoreLockout(bool enabled) {
+    _multicoreLockoutEnabled = enabled;
 }
 
 uint8_t * EEPROMClass::getDataPtr() {

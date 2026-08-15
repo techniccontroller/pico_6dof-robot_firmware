@@ -122,13 +122,11 @@ void MotorController::stepStepper(AccelStepper * stepper, AS5600 * encoder, Moto
             stepper->setCurrentPosition(0);
             *setpoint_pos = 0;
             *setpoint_vel = INIT_VEL_STEPPER;
-            printf("M1/2/3 - initialized\n\r");
         }
         speed = std::clamp(5 * angle, -INIT_VEL_STEPPER, INIT_VEL_STEPPER);
         speed_steps = m_stepperConfiguration->angleDegToSteps(speed);
         stepper->setMaxSpeed(speed_steps);
         stepper->setSpeed(speed_steps);
-        printf("M1/2/3 - angle: %f, speed: %f\n\r", angle, speed);
         break;
     case POSITION_CONTROL:
         speed_steps = m_stepperConfiguration->angleDegToSteps(*setpoint_vel);
@@ -347,7 +345,6 @@ void MotorController::setM1Position(float position)
     g_m1_state = MotorControlState::POSITION_CONTROL;
     g_m1_setpoint_pos = position;
     g_m1_setpoint_vel = 3000;
-    printf("M1 - setpoint: %f\n\r", g_m1_setpoint_pos);
 }
 
 void MotorController::setM2Position(float position)
@@ -355,7 +352,6 @@ void MotorController::setM2Position(float position)
     g_m2_state = MotorControlState::POSITION_CONTROL;
     g_m2_setpoint_pos = position;
     g_m2_setpoint_vel = 3000;
-    printf("M2 - setpoint: %f\n\r", g_m2_setpoint_pos);
 }
 
 void MotorController::setM3Position(float position)
@@ -363,7 +359,6 @@ void MotorController::setM3Position(float position)
     g_m3_state = MotorControlState::POSITION_CONTROL;
     g_m3_setpoint_pos = position;
     g_m3_setpoint_vel = 3000;
-    printf("M3 - setpoint: %f\n\r", g_m3_setpoint_pos);
 }
 
 void MotorController::setM4Position(float position)
@@ -381,7 +376,6 @@ void MotorController::setM5Position(float position)
     g_m5_state = MotorControlState::POSITION_CONTROL;
     g_m5_setpoint_pos = position;
     g_m5_setpoint_vel = 3000;
-    printf("M5 - setpoint: %f\n\r", g_m5_setpoint_pos);
 }
 
 void MotorController::setM6Position(float position)
@@ -389,7 +383,6 @@ void MotorController::setM6Position(float position)
     g_m6_state = MotorControlState::POSITION_CONTROL;
     g_m6_setpoint_pos = position;
     g_m6_setpoint_vel = 3000;
-    printf("M6 - setpoint: %f\n\r", g_m6_setpoint_pos);
 }
 
 void MotorController::setM1Velocity(float velocity)
@@ -433,7 +426,6 @@ void MotorController::setM1PositionVelocity(float position, float velocity)
     g_m1_state = MotorControlState::POSITION_CONTROL;
     g_m1_setpoint_pos = position;
     g_m1_setpoint_vel = velocity;
-    printf("M1 - setpoint pos: %f, vel: %f\n\r", g_m1_setpoint_pos, g_m1_setpoint_vel);
 }
 
 void MotorController::setM2PositionVelocity(float position, float velocity)
@@ -441,7 +433,6 @@ void MotorController::setM2PositionVelocity(float position, float velocity)
     g_m2_state = MotorControlState::POSITION_CONTROL;
     g_m2_setpoint_pos = position;
     g_m2_setpoint_vel = velocity;
-    printf("M2 - setpoint pos: %f, vel: %f\n\r", g_m2_setpoint_pos, g_m2_setpoint_vel);
 }
 
 void MotorController::setM3PositionVelocity(float position, float velocity)
@@ -449,7 +440,6 @@ void MotorController::setM3PositionVelocity(float position, float velocity)
     g_m3_state = MotorControlState::POSITION_CONTROL;
     g_m3_setpoint_pos = position;
     g_m3_setpoint_vel = velocity;
-    printf("M3 - setpoint pos: %f, vel: %f\n\r", g_m3_setpoint_pos, g_m3_setpoint_vel);
 }
 
 void MotorController::setM4PositionVelocity(float position, float velocity)
@@ -464,7 +454,6 @@ void MotorController::setM5PositionVelocity(float position, float velocity)
     g_m5_state = MotorControlState::POSITION_CONTROL;
     g_m5_setpoint_pos = position;
     g_m5_setpoint_vel = velocity;
-    printf("M5 - setpoint pos: %f, vel: %f\n\r", g_m5_setpoint_pos, g_m5_setpoint_vel);
 }
 
 void MotorController::setM6PositionVelocity(float position, float velocity)
@@ -472,5 +461,4 @@ void MotorController::setM6PositionVelocity(float position, float velocity)
     g_m6_state = MotorControlState::POSITION_CONTROL;
     g_m6_setpoint_pos = position;
     g_m6_setpoint_vel = velocity;
-    printf("M6 - setpoint pos: %f, vel: %f\n\r", g_m6_setpoint_pos, g_m6_setpoint_vel);
 }

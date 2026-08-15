@@ -51,6 +51,7 @@ public:
     void initialize();
 
     void moveToConfiguration(std::vector<float> config, float velocity);
+    void moveToConfiguration(const float config[6], float velocity);
 
     void stepStepper(AccelStepper *stepper, AS5600 *encoder,
                      JointControlState *state, float *setpoint_pos,
@@ -61,6 +62,7 @@ public:
     void setJ1HallSensorRaw(uint16_t rawValue);
     bool isJ1Homed() const;
     std::vector<float> getConfiguration();
+    void copyConfiguration(float config[6]);
     void checkJointLimitsJ2J3();
     float getDiffAngleJ2J3();
     float stepDCJoint(AS5600 *encoder, JointControlState *state,

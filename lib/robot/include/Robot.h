@@ -16,6 +16,23 @@
 
 #pragma once
 
+/** POD telemetry message copied from the robot core to the communication core. */
+struct RobotTelemetry
+{
+    float config[6] = {};
+    uint16_t j1HallSensorRaw = 4095;
+    bool j1Homed = false;
+    float encoderPositions[5] = {};
+    float encoderPositionsRaw[5] = {};
+    uint8_t encoderStatus[5] = {};
+    int encoderZeros[5] = {};
+    float j4NeutralCommand = 0.0f;
+    float j4OutputCommand = 0.0f;
+    float j4Speed = 0.0f;
+    float diffAngleJ2J3 = 0.0f;
+    float stepperSpeeds[3] = {};
+};
+
 class Robot
 {
 
@@ -52,16 +69,20 @@ public:
     void setJointPositionVelocity(int joint, float position, float velocity);
 
     void moveToConfiguration(std::vector<float> config, float velocity);
+    void moveToConfiguration(const float config[6], float velocity);
 
     void openGripper();
     void closeGripper();
     void setGripperPosition(float position);
 
     std::vector<float> getConfiguration();
+    void copyConfiguration(float config[6]);
 
     float getJointPosition(int joint);
 
     std::string getRobotDataAsJson();
+    RobotTelemetry getTelemetrySnapshot();
+    static std::string telemetryToJson(const RobotTelemetry& telemetry);
 
     void setPID(int joint, float p, float i, float d);
     void setJ5J6Mixing(float j5ToM5, float j5ToM6,

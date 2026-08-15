@@ -13,8 +13,9 @@
 #include <string.h>
 #include "defines_constants.h"
 #include "comm_functions.h"
+#include "pico/util/queue.h"
+#include "robot_command.h"
 #include <vector>
-#include <Robot.h>
 
 /**
  * @brief Set this flag to 1 to receive additional debug output via the communication interface
@@ -25,7 +26,7 @@
 class Communication
 {
 public:
-    Communication(Robot *robot);
+    Communication(queue_t *commandQueue);
 
     /**
      * @brief Check if new commands have been received and process them if so
@@ -67,10 +68,11 @@ private:
      */
     std::vector<float> extract_cmd_values(const char *cmd);
     void process_cmd(char *cmd);
+    bool enqueue_command(const RobotCommand& command);
 
     char buffer[BUFFER_SIZE] = {};          /**< Accumulates one newline-terminated command. */
     uint16_t buffer_index = 0;              /**< Number of command bytes accumulated so far. */
     bool discarding_oversized_cmd = false;  /**< Ignore input until newline after an overflow. */
     bool _manual_drive = false;             /**< Flag wheter the manual driving mode is active. */
-    Robot *m_robot;                         /**< Pointer to the robot object. */
+    queue_t *m_command_queue;               /**< Commands consumed by the robot core. */
 };

@@ -53,6 +53,7 @@ Robot::Robot(void):
     m_motorController(&m_stepperConfiguration),
     m_gripper(SERVO_GRIPPER_PIN)
 {
+    EEPROM.enableMulticoreLockout();
     adc_init();
     adc_gpio_init(J1_HALL_SENSOR_PIN);
     adc_select_input(J1_HALL_SENSOR_ADC_INPUT);
@@ -218,6 +219,11 @@ std::vector<float> Robot::getConfiguration()
     return m_jointController.getConfiguration();
 }
 
+void Robot::copyConfiguration(float config[6])
+{
+    m_jointController.copyConfiguration(config);
+}
+
 float Robot::getJointPosition(int joint)
 {
     std::vector<float> config = getConfiguration();
@@ -246,40 +252,59 @@ float Robot::getJointPosition(int joint)
 
 std::string Robot::getRobotDataAsJson()
 {
+    return telemetryToJson(getTelemetrySnapshot());
+}
+
+RobotTelemetry Robot::getTelemetrySnapshot()
+{
+    RobotTelemetry telemetry;
+    copyConfiguration(telemetry.config);
+
+    telemetry.j1HallSensorRaw = m_j1HallSensorRaw;
+    telemetry.j1Homed = m_jointController.isJ1Homed();
+
+    AS5600* encoders[5] = {
+        &m_encoderJ2, &m_encoderJ3, &m_encoderJ4, &m_encoderJ5, &m_encoderJ6};
+    for (size_t i = 0; i < 5; ++i)
+    {
+        telemetry.encoderPositions[i] = normalizeAngle180(encoders[i]->getCorrectedAngleDeg());
+        telemetry.encoderPositionsRaw[i] = encoders[i]->readAngleDeg();
+        telemetry.encoderStatus[i] = encoders[i]->getStatus();
+        telemetry.encoderZeros[i] = encoders[i]->getZero();
+    }
+
+    telemetry.j4NeutralCommand = m_motorM4.getNeutralCommand();
+    telemetry.j4OutputCommand = m_motorM4.getCommand();
+    telemetry.j4Speed = m_motorM4.getSpeed();
+    telemetry.diffAngleJ2J3 = m_jointController.getDiffAngleJ2J3();
+    telemetry.stepperSpeeds[0] = m_stepperM1.speed();
+    telemetry.stepperSpeeds[1] = m_stepperM2.speed();
+    telemetry.stepperSpeeds[2] = m_stepperM3.speed();
+    return telemetry;
+}
+
+std::string Robot::telemetryToJson(const RobotTelemetry& telemetry)
+{
     nlohmann::json jsonObj;
-    
-    std::vector<float> config = getConfiguration();
-    jsonObj["robot_data"]["config"] = config;
-
-    jsonObj["robot_data"]["j1_hall_sensor_raw"] = m_j1HallSensorRaw;
-    jsonObj["robot_data"]["j1_homed"] = m_jointController.isJ1Homed();
-
-    float encoderE2 = normalizeAngle180(m_encoderJ2.getCorrectedAngleDeg());
-    float encoderE3 = normalizeAngle180(m_encoderJ3.getCorrectedAngleDeg());
-    jsonObj["robot_data"]["encoder_positions"] = {
-        encoderE2,
-        encoderE3,
-        normalizeAngle180(m_encoderJ4.getCorrectedAngleDeg()),
-        normalizeAngle180(m_encoderJ5.getCorrectedAngleDeg()),
-        normalizeAngle180(m_encoderJ6.getCorrectedAngleDeg())};
-    jsonObj["robot_data"]["encoder_positions_raw"] = {m_encoderJ2.readAngleDeg(), m_encoderJ3.readAngleDeg(),
-                                         m_encoderJ4.readAngleDeg(), m_encoderJ5.readAngleDeg(), m_encoderJ6.readAngleDeg()};
-    jsonObj["robot_data"]["encoder_status"] = {m_encoderJ2.getStatus(), m_encoderJ3.getStatus(),
-                                  m_encoderJ4.getStatus(), m_encoderJ5.getStatus(), m_encoderJ6.getStatus()};
-    jsonObj["robot_data"]["encoder_zeros"] = {m_encoderJ2.getZero(), m_encoderJ3.getZero(),
-                                  m_encoderJ4.getZero(), m_encoderJ5.getZero(), m_encoderJ6.getZero()};
+    jsonObj["robot_data"]["config"] = telemetry.config;
+    jsonObj["robot_data"]["j1_hall_sensor_raw"] = telemetry.j1HallSensorRaw;
+    jsonObj["robot_data"]["j1_homed"] = telemetry.j1Homed;
+    jsonObj["robot_data"]["encoder_positions"] = telemetry.encoderPositions;
+    jsonObj["robot_data"]["encoder_positions_raw"] = telemetry.encoderPositionsRaw;
+    jsonObj["robot_data"]["encoder_status"] = telemetry.encoderStatus;
+    jsonObj["robot_data"]["encoder_zeros"] = telemetry.encoderZeros;
     jsonObj["robot_data"]["j4_continuous_servo"] = {
-        {"neutral_command", m_motorM4.getNeutralCommand()},
-        {"output_command", m_motorM4.getCommand()},
-        {"speed", m_motorM4.getSpeed()}
+        {"neutral_command", telemetry.j4NeutralCommand},
+        {"output_command", telemetry.j4OutputCommand},
+        {"speed", telemetry.j4Speed}
     };
-    jsonObj["robot_data"]["diffAngleJ2J3"] = m_jointController.getDiffAngleJ2J3();
+    jsonObj["robot_data"]["diffAngleJ2J3"] = telemetry.diffAngleJ2J3;
     jsonObj["robot_data"]["j2_j3_limit_coordinates"] = {
-        {"encoder", {{"e2", encoderE2}, {"e3", encoderE3}}},
-        {"joint", {{"j2", config[1]}, {"j3", config[2]}}},
-        {"difference_e2_minus_inverted_e3", m_jointController.getDiffAngleJ2J3()}
+        {"encoder", {{"e2", telemetry.encoderPositions[0]}, {"e3", telemetry.encoderPositions[1]}}},
+        {"joint", {{"j2", telemetry.config[1]}, {"j3", telemetry.config[2]}}},
+        {"difference_e2_minus_inverted_e3", telemetry.diffAngleJ2J3}
     };
-    jsonObj["robot_data"]["speeds"] = {m_stepperM1.speed(), m_stepperM2.speed(), m_stepperM3.speed()};
+    jsonObj["robot_data"]["speeds"] = telemetry.stepperSpeeds;
     roundJsonFloatsToThreeDecimals(jsonObj);
     return jsonObj.dump();
 }
@@ -313,6 +338,10 @@ void Robot::setJ5J6Mixing(
  * @param velocity  Velocity to move with [deg/s]
  */
 void Robot::moveToConfiguration(std::vector<float> config, float velocity){
+    m_jointController.moveToConfiguration(config, velocity);
+}
+
+void Robot::moveToConfiguration(const float config[6], float velocity){
     m_jointController.moveToConfiguration(config, velocity);
 }
 

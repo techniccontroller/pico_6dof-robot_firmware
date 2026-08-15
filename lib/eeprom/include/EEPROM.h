@@ -37,6 +37,7 @@ public:
     void write(int const address, uint8_t const val);
     bool commit();
     bool end();
+    void enableMulticoreLockout(bool enabled = true);
 
     uint8_t * getDataPtr();
     uint8_t const * getConstDataPtr() const;
@@ -84,6 +85,7 @@ protected:
     uint8_t* _data = nullptr;
     size_t _size = 0;
     bool _dirty = false;
+    bool _multicoreLockoutEnabled = false;
 };
 
 extern EEPROMClass EEPROM;
