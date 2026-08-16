@@ -4,6 +4,10 @@ Firmware and a Python desktop client for controlling the 6-DOF robot. The
 firmware is configured for a Raspberry Pi Pico W and communicates with the
 client over USB serial at 115200 baud.
 
+Blog post about the robot: https://techniccontroller.com/diy-6dof-robot-arm-a-low-cost-design-with-rp2040-and-ros-2/
+
+![image](assets/6dof_robot_1.jpg)
+
 ## Python client
 
 Python 3 and `venv` are required. On Debian/Ubuntu, install the system packages
